@@ -91,5 +91,5 @@ func trigger_game_over(reason: String) -> void:
 	game_lost.emit(reason, current_distance, run_coins)
 
 func restart_game() -> void:
-	start_game()
+	# Main._ready() will initialize and start game
 	get_tree().reload_current_scene()

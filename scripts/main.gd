@@ -1,8 +1,9 @@
+class_name Main
 extends Node3D
 
-@onready var player: CharacterBody3D = $Player
+@onready var player: Player = $Player
 @onready var camera: Camera3D = $Camera3D
-@onready var spawner: Node3D = $Spawner
+@onready var spawner: Spawner = $Spawner
 
 # Camera offset for Crossy Road isometric view
 var camera_offset: Vector3
@@ -20,10 +21,11 @@ func _physics_process(delta: float) -> void:
 	if not camera or not player:
 		return
 	
-	# Smoothly track player along Z axis and gentle follow on X
+	# Frame-rate independent smooth tracking
 	var target_pos := Vector3(
 		camera_offset.x + player.global_position.x * 0.3,
 		camera_offset.y,
 		player.global_position.z + camera_offset.z
 	)
-	camera.global_position = camera.global_position.lerp(target_pos, delta * 8.0)
+	var weight: float = 1.0 - exp(-8.0 * delta)
+	camera.global_position = camera.global_position.lerp(target_pos, weight)

@@ -1,3 +1,4 @@
+class_name Pedestrian
 extends Area3D
 
 const SPEED: float = 1.0
@@ -7,7 +8,9 @@ var bob_time: float = 0.0
 @onready var visual_root: Node3D = $Visuals
 @onready var body_mesh: MeshInstance3D = $Visuals/Body
 
-# Random palette for pedestrians
+# Static material cache to prevent redundant material creation and batch draw calls
+static var _cached_materials: Array[StandardMaterial3D] = []
+
 const SHIRT_COLORS: Array[Color] = [
 	Color(0.2, 0.5, 0.9),  # Blue
 	Color(0.9, 0.3, 0.3),  # Red
@@ -19,20 +22,24 @@ const SHIRT_COLORS: Array[Color] = [
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
-	_randomize_appearance()
+	_apply_cached_material()
 
-func _randomize_appearance() -> void:
-	if body_mesh:
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = SHIRT_COLORS.pick_random()
-		mat.roughness = 0.8
-		body_mesh.material_override = mat
+func _apply_cached_material() -> void:
+	if _cached_materials.is_empty():
+		for col in SHIRT_COLORS:
+			var mat := StandardMaterial3D.new()
+			mat.albedo_color = col
+			mat.roughness = 0.8
+			_cached_materials.append(mat)
+	
+	if body_mesh and not _cached_materials.is_empty():
+		body_mesh.material_override = _cached_materials.pick_random()
 
-func _process(delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if is_dead:
 		return
 	
-	# Move towards -Z (counter to player)
+	# Synchronized with physics tick
 	global_position.z -= SPEED * delta
 	
 	# Walking bob
@@ -44,9 +51,8 @@ func _on_body_entered(body: Node3D) -> void:
 	if is_dead:
 		return
 	
-	if body.has_method("hit_by_obstacle"):
+	if body is Player:
 		if body.is_sliding:
-			# Player slid through obstacle!
 			knockback_and_destroy()
 		else:
 			body.hit_by_obstacle()
@@ -54,8 +60,9 @@ func _on_body_entered(body: Node3D) -> void:
 
 func knockback_and_destroy() -> void:
 	is_dead = true
-	set_deferred("monitoring", false)
-	set_deferred("monitorable", false)
+	set_deferred(&"monitoring", false)
+	set_deferred(&"monitorable", false)
+	set_physics_process(false)
 	
 	# Dramatic launch upwards and backwards
 	var tween := create_tween().set_parallel(true)
@@ -67,8 +74,9 @@ func knockback_and_destroy() -> void:
 
 func destroy_pedestrian() -> void:
 	is_dead = true
-	set_deferred("monitoring", false)
-	set_deferred("monitorable", false)
+	set_deferred(&"monitoring", false)
+	set_deferred(&"monitorable", false)
+	set_physics_process(false)
 	
 	var tween := create_tween().set_parallel(true)
 	tween.tween_property(visual_root, "scale", Vector3.ZERO, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)

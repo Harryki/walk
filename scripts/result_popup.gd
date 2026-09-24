@@ -12,6 +12,8 @@ extends Control
 
 @onready var retry_btn: Button = $CenterContainer/Panel/VBoxContainer/RetryBtn
 
+var _last_coins_earned: int = 0
+
 func _ready() -> void:
 	visible = false
 	GameManager.game_won.connect(_on_game_won)
@@ -24,6 +26,7 @@ func _ready() -> void:
 
 func _on_game_won(distance: float, coins_earned: int) -> void:
 	visible = true
+	_last_coins_earned = coins_earned
 	title_label.text = "🎉 STAGE CLEAR! 🎉"
 	title_label.modulate = Color(1.0, 0.85, 0.2)
 	reason_label.text = "100m 결승선 돌파 성공!"
@@ -32,6 +35,7 @@ func _on_game_won(distance: float, coins_earned: int) -> void:
 
 func _on_game_lost(reason: String, distance: float, coins_earned: int) -> void:
 	visible = true
+	_last_coins_earned = coins_earned
 	title_label.text = "💀 GAME OVER"
 	title_label.modulate = Color(1.0, 0.3, 0.3)
 	reason_label.text = reason
@@ -40,10 +44,16 @@ func _on_game_lost(reason: String, distance: float, coins_earned: int) -> void:
 
 func _update_stats_display(distance: float, coins_earned: int) -> void:
 	distance_label.text = "최종 도달 거리: %.1fm / 100m" % distance
-	coins_label.text = "획득 코인: +%d 🪙  |  보유 코인: %d 🪙" % [coins_earned, SaveManager.coins]
+	_render_coins_label(coins_earned)
+
+func _render_coins_label(earned: int) -> void:
+	if earned > 0:
+		coins_label.text = "획득 코인: +%d 🪙  |  보유 코인: %d 🪙" % [earned, SaveManager.coins]
+	else:
+		coins_label.text = "보유 코인: %d 🪙" % SaveManager.coins
 
 func _update_shop_buttons() -> void:
-	coins_label.text = "보유 코인: %d 🪙" % SaveManager.coins
+	_render_coins_label(_last_coins_earned)
 	
 	# Stamina Button
 	var stam_cost := SaveManager.get_stamina_upgrade_cost()

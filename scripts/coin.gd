@@ -1,3 +1,4 @@
+class_name Coin
 extends Area3D
 
 var is_collected: bool = false
@@ -23,17 +24,16 @@ func _on_body_entered(body: Node3D) -> void:
 	if is_collected:
 		return
 	
-	if body.is_in_group("player") or body.has_method("hit_by_obstacle"):
+	if body is Player:
 		collect()
 
 func collect() -> void:
 	is_collected = true
-	set_deferred("monitoring", false)
-	set_deferred("monitorable", false)
+	set_deferred(&"monitoring", false)
+	set_deferred(&"monitorable", false)
 	
 	GameManager.collect_coin(10)
 	
-	# Nice pop effect
 	var tween := create_tween().set_parallel(true)
 	tween.tween_property(self, "global_position:y", global_position.y + 1.2, 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.tween_property(visual_root, "scale", Vector3(1.5, 1.5, 1.5), 0.15)
