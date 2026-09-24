@@ -1,0 +1,62 @@
+[gd_scene format=3 uid="uid://bmain01runner"]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://scenes/environment/track.tscn" id="2_track"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="3_player"]
+[ext_resource type="Script" path="res://scripts/spawner.gd" id="4_spawner"]
+[ext_resource type="PackedScene" path="res://scenes/obstacles/pedestrian.tscn" id="5_ped"]
+[ext_resource type="PackedScene" path="res://scenes/obstacles/coin.tscn" id="6_coin"]
+[ext_resource type="PackedScene" path="res://scenes/environment/car.tscn" id="7_car"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="8_hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/result_popup.tscn" id="9_result"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_main"]
+sky_top_color = Color(0.38, 0.68, 0.95, 1)
+sky_horizon_color = Color(0.75, 0.85, 0.95, 1)
+ground_bottom_color = Color(0.2, 0.22, 0.25, 1)
+ground_horizon_color = Color(0.65, 0.75, 0.8, 1)
+
+[sub_resource type="Sky" id="Sky_main"]
+sky_material = SubResource("ProceduralSkyMaterial_main")
+
+[sub_resource type="Environment" id="Environment_main"]
+background_mode = 2
+sky = SubResource("Sky_main")
+ambient_light_source = 2
+ambient_light_color = Color(0.85, 0.88, 0.95, 1)
+ambient_light_energy = 0.75
+tonemap_mode = 2
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_main")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.766044, 0.422618, -0.485072, 0, 0.75471, 0.656059, 0.642788, -0.50257, 0.578142, -10, 20, 10)
+light_color = Color(1, 0.98, 0.92, 1)
+light_energy = 1.2
+shadow_enabled = true
+
+[node name="Track" parent="." instance=ExtResource("2_track")]
+
+[node name="Player" parent="." instance=ExtResource("3_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(-0.747409, 0.424446, -0.511101, 0, 0.769309, 0.638877, 0.664364, 0.477502, -0.574989, -8, 10.5, -6.5)
+projection = 1
+size = 11.5
+
+[node name="Spawner" type="Node3D" parent="."]
+script = ExtResource("4_spawner")
+pedestrian_scene = ExtResource("5_ped")
+coin_scene = ExtResource("6_coin")
+car_scene = ExtResource("7_car")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="HUD" parent="UI" instance=ExtResource("8_hud")]
+
+[node name="ResultPopup" parent="UI" instance=ExtResource("9_result")]

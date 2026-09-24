@@ -1,0 +1,203 @@
+[gd_scene format=3 uid="uid://ghud01scene"]
+
+[ext_resource type="Script" path="res://scripts/hud.gd" id="1_hud"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_time"]
+bg_color = Color(0, 0, 0, 0.45)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+expand_margin_left = 10.0
+expand_margin_top = 4.0
+expand_margin_right = 10.0
+expand_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_stamina_bg"]
+bg_color = Color(0.15, 0.15, 0.18, 0.7)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_stamina_fill"]
+bg_color = Color(0.2, 0.75, 1, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_slide"]
+bg_color = Color(0, 0, 0, 0.45)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+expand_margin_left = 8.0
+expand_margin_top = 4.0
+expand_margin_right = 8.0
+expand_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hint"]
+bg_color = Color(0, 0, 0, 0.35)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+expand_margin_left = 12.0
+expand_margin_top = 4.0
+expand_margin_right = 12.0
+expand_margin_bottom = 4.0
+
+[node name="HUD" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_hud")
+
+[node name="TopBar" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -160.0
+offset_top = 16.0
+offset_right = 160.0
+offset_bottom = 84.0
+grow_horizontal = 2
+theme_override_constants/separation = 6
+
+[node name="TimeContainer" type="PanelContainer" parent="TopBar"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_time")
+
+[node name="TimeLabel" type="Label" parent="TopBar/TimeContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "00:45.00"
+horizontal_alignment = 1
+
+[node name="DistanceContainer" type="VBoxContainer" parent="TopBar"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="DistanceLabel" type="Label" parent="TopBar/DistanceContainer"]
+layout_mode = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 15
+text = "0.0m / 100m"
+horizontal_alignment = 1
+
+[node name="DistanceProgressBar" type="ProgressBar" parent="TopBar/DistanceContainer"]
+custom_minimum_size = Vector2(300, 10)
+layout_mode = 2
+size_flags_horizontal = 4
+show_percentage = false
+
+[node name="StatsContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+offset_left = 24.0
+offset_top = 20.0
+offset_right = 260.0
+offset_bottom = 140.0
+theme_override_constants/separation = 10
+
+[node name="HPContainer" type="HBoxContainer" parent="StatsContainer"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Heart1" type="Label" parent="StatsContainer/HPContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "❤️"
+
+[node name="Heart2" type="Label" parent="StatsContainer/HPContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "❤️"
+
+[node name="Heart3" type="Label" parent="StatsContainer/HPContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "❤️"
+
+[node name="StaminaBar" type="ProgressBar" parent="StatsContainer"]
+custom_minimum_size = Vector2(220, 22)
+layout_mode = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_stamina_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_stamina_fill")
+value = 100.0
+show_percentage = false
+
+[node name="StaminaLabel" type="Label" parent="StatsContainer/StaminaBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 14
+text = "⚡ 100 / 100"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SlidePanel" type="PanelContainer" parent="StatsContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_slide")
+
+[node name="SlideLabel" type="Label" parent="StatsContainer/SlidePanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "💨 슬라이드 [W/Swipe]: 준비 완료"
+
+[node name="CoinContainer" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -160.0
+offset_top = 20.0
+offset_right = -24.0
+offset_bottom = 60.0
+grow_horizontal = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_time")
+
+[node name="CoinLabel" type="Label" parent="CoinContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.25, 1)
+theme_override_font_sizes/font_size = 22
+text = "🪙 0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BottomHint" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -280.0
+offset_top = -48.0
+offset_right = 280.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_hint")
+
+[node name="HintLabel" type="Label" parent="BottomHint"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 0.85)
+theme_override_font_sizes/font_size = 13
+text = "[A/D or 좌우 스와이프] 레인 변경  |  [Space or 탭] 대시 부스트  |  [W or 위 스와이프] 무적 돌파"
+horizontal_alignment = 1
+vertical_alignment = 1

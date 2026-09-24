@@ -1,0 +1,78 @@
+[gd_scene format=3 uid="uid://cpedestrian01scene"]
+
+[ext_resource type="Script" path="res://scripts/pedestrian.gd" id="1_ped"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ped"]
+size = Vector3(0.65, 1.0, 0.65)
+
+[sub_resource type="BoxMesh" id="BoxMesh_body"]
+size = Vector3(0.5, 0.45, 0.45)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_body_default"]
+albedo_color = Color(0.85, 0.3, 0.3, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="BoxMesh_head"]
+size = Vector3(0.42, 0.4, 0.4)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_skin"]
+albedo_color = Color(0.95, 0.8, 0.65, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_hair"]
+size = Vector3(0.44, 0.16, 0.44)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_hair"]
+albedo_color = Color(0.2, 0.15, 0.1, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_briefcase"]
+size = Vector3(0.12, 0.25, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_case"]
+albedo_color = Color(0.35, 0.2, 0.12, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_eye"]
+size = Vector3(0.08, 0.08, 0.04)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_eye"]
+albedo_color = Color(0.1, 0.1, 0.1, 1)
+
+[node name="Pedestrian" type="Area3D" groups=["pedestrians"]]
+collision_layer = 2
+collision_mask = 1
+script = ExtResource("1_ped")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+shape = SubResource("BoxShape3D_ped")
+
+[node name="Visuals" type="Node3D" parent="."]
+
+[node name="Body" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.32, 0)
+mesh = SubResource("BoxMesh_body")
+surface_material_override/0 = SubResource("StandardMaterial3D_body_default")
+
+[node name="Head" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.72, 0)
+mesh = SubResource("BoxMesh_head")
+surface_material_override/0 = SubResource("StandardMaterial3D_skin")
+
+[node name="Hair" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.92, 0)
+mesh = SubResource("BoxMesh_hair")
+surface_material_override/0 = SubResource("StandardMaterial3D_hair")
+
+[node name="Briefcase" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.32, 0.25, 0)
+mesh = SubResource("BoxMesh_briefcase")
+surface_material_override/0 = SubResource("StandardMaterial3D_case")
+
+[node name="EyeL" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.11, 0.72, -0.21)
+mesh = SubResource("BoxMesh_eye")
+surface_material_override/0 = SubResource("StandardMaterial3D_eye")
+
+[node name="EyeR" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.11, 0.72, -0.21)
+mesh = SubResource("BoxMesh_eye")
+surface_material_override/0 = SubResource("StandardMaterial3D_eye")
