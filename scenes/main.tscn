@@ -49,7 +49,7 @@ shadow_enabled = true
 [node name="Player" parent="." unique_id=1889903990 instance=ExtResource("3_player")]
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=1698097130]
-transform = Transform3D(-0.872683, 0.351796, -0.338621, 0, 0.693487, 0.720469, 0.488287, 0.628741, -0.605194, -2.52, 10, -3.2)
+transform = Transform3D(-0.872683, 0.351796, -0.338621, 0, 0.693487, 0.720469, 0.488287, 0.628741, -0.605194, -1.4, 10, -1.2)
 keep_aspect = 0
 projection = 1
 size = 10.5
