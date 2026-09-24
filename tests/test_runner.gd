@@ -58,7 +58,23 @@ func _ready() -> void:
 	player.try_tap_boost()
 	assert(player.current_stamina == initial_stam - 5.0, "Tap boost should consume 5 stamina")
 	assert(player.current_speed > initial_spd, "Tap boost should increase speed")
-	print("  -> Tap boost PASSED!")
+	print("  -> Direct Tap boost PASSED!")
+	
+	# Test Spacebar input event
+	var space_event := InputEventKey.new()
+	space_event.physical_keycode = KEY_SPACE
+	space_event.pressed = true
+	player._unhandled_input(space_event)
+	assert(player.current_stamina == initial_stam - 10.0, "Spacebar input must consume 5 stamina")
+	print("  -> Spacebar input event PASSED!")
+	
+	# Test Mouse Click (Screen Tap) input event
+	var click_event := InputEventMouseButton.new()
+	click_event.button_index = MOUSE_BUTTON_LEFT
+	click_event.pressed = true
+	player._unhandled_input(click_event)
+	assert(player.current_stamina == initial_stam - 15.0, "Mouse click input must consume 5 stamina")
+	print("  -> Mouse Click (Tap) input event PASSED!")
 	
 	# Test slide
 	var stam_before_slide: float = player.current_stamina

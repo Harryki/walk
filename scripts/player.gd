@@ -9,10 +9,10 @@ const MAX_LANE: int = 2
 
 # Speed & Boost parameters
 var base_speed: float = 1.0
-const TAP_BOOST: float = 0.4
+const TAP_BOOST: float = 0.5
 const MAX_SPEED: float = 5.0
-const SPEED_DECAY_DELAY: float = 0.2
-const SPEED_DECAY_RATE: float = 4.0 # m/s^2 decay rate
+const SPEED_DECAY_DELAY: float = 0.25
+const SPEED_DECAY_RATE: float = 2.0 # Smoother, more satisfying decay
 
 var current_speed: float = 1.0
 var time_since_last_tap: float = 0.0
@@ -106,22 +106,25 @@ func _unhandled_input(event: InputEvent) -> void:
 	if GameManager.current_state != GameManager.GameState.PLAYING:
 		return
 	
-	# 1. Discrete keyboard events (preventing duplicate triggers when mouse emulation is active)
-	if event is InputEventKey and event.is_pressed() and not event.is_echo():
-		if event.is_action_pressed(&"move_left"):
-			change_lane(-1)
-			return
-		elif event.is_action_pressed(&"move_right"):
-			change_lane(1)
-			return
-		elif event.is_action_pressed(&"slide"):
-			try_slide()
-			return
-		elif event.is_action_pressed(&"tap_boost"):
-			try_tap_boost()
-			return
+	# 1. Action-based input: Handles Spacebar, Left Mouse Click, A/D, W smoothly
+	if event.is_action_pressed(&"tap_boost"):
+		try_tap_boost()
+		get_viewport().set_input_as_handled()
+		return
+	elif event.is_action_pressed(&"move_left"):
+		change_lane(-1)
+		get_viewport().set_input_as_handled()
+		return
+	elif event.is_action_pressed(&"move_right"):
+		change_lane(1)
+		get_viewport().set_input_as_handled()
+		return
+	elif event.is_action_pressed(&"slide"):
+		try_slide()
+		get_viewport().set_input_as_handled()
+		return
 	
-	# 2. Touch / Mouse gestures
+	# 2. Touch screen gestures for mobile swipes
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			touch_start_pos = event.position
@@ -131,13 +134,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			if is_touch_active:
 				is_touch_active = false
 				var swipe_vec: Vector2 = event.position - touch_start_pos
-				var duration: float = (Time.get_ticks_msec() / 1000.0) - touch_start_time
 				
-				if swipe_vec.length() < SWIPE_THRESHOLD and duration < 0.35:
-					# Tap boost
-					try_tap_boost()
-				else:
-					# Swipe gesture
+				# Swipe gestures (Left, Right, Up)
+				if swipe_vec.length() >= SWIPE_THRESHOLD:
 					if absf(swipe_vec.x) > absf(swipe_vec.y):
 						if swipe_vec.x < -SWIPE_THRESHOLD:
 							change_lane(-1)
