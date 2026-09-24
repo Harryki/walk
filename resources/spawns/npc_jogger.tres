@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="NPCData" format=3 uid="uid://c6wpjgwqga6gh"]
+
+[ext_resource type="Script" uid="uid://cxcn4qqi1nsph" path="res://scripts/resources/npc_data.gd" id="1_data"]
+[ext_resource type="PackedScene" uid="uid://ciprwf6lgndec" path="res://scenes/obstacles/pedestrian.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"pedestrian_jogger"
+display_name = "조깅하는 시민"
+scene = ExtResource("2_scene")
+move_speed_min = 15.0
+move_speed_max = 20.0
+body_color = Color(0.95, 0.45, 0.1, 1)

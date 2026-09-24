@@ -7,24 +7,28 @@ signal coin_collected(current_total: int, run_total: int)
 signal distance_updated(current_dist: float, max_dist: float)
 signal time_updated(time_left: float)
 signal hp_updated(hp: int)
+
 signal stamina_updated(stamina: float, max_stamina: float, is_exhausted: bool)
 signal slide_cooldown_updated(time_left: float, max_time: float)
+signal interior_entered
+signal interior_exited    
 
 enum GameState {
 	READY,
 	PLAYING,
+	IN_INTERIOR,
 	GAME_OVER,
 	VICTORY
-}
+}     
 
 const TARGET_DISTANCE: float = 100.0
 const TIME_LIMIT: float = 45.0
-const MAX_HP: int = 3
+const MAX_HP: int = 3 
 
 var current_state: GameState = GameState.READY
 var time_left: float = TIME_LIMIT
 var current_distance: float = 0.0
-var run_coins: int = 0
+var run_coins: int = 0 
 var current_hp: int = MAX_HP
 
 func _ready() -> void:

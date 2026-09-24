@@ -1,6 +1,6 @@
-[gd_scene format=3 uid="uid://ftrack01scene"]
+[gd_scene format=3 uid="uid://bydeqi3r74ivm"]
 
-[ext_resource type="Script" path="res://scripts/track_generator.gd" id="1_track"]
+[ext_resource type="Script" uid="uid://doxipycux1l87" path="res://scripts/track_generator.gd" id="1_track"]
 
-[node name="Track" type="Node3D"]
+[node name="Track" type="Node3D" unique_id=770072773]
 script = ExtResource("1_track")

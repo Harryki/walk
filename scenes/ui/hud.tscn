@@ -2,19 +2,38 @@
 
 [ext_resource type="Script" path="res://scripts/hud.gd" id="1_hud"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_time"]
-bg_color = Color(0, 0, 0, 0.45)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-expand_margin_left = 10.0
-expand_margin_top = 4.0
-expand_margin_right = 10.0
-expand_margin_bottom = 4.0
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pill"]
+content_margin_left = 12.0
+content_margin_top = 4.0
+content_margin_right = 12.0
+content_margin_bottom = 4.0
+bg_color = Color(0.08, 0.09, 0.12, 0.75)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.25, 0.28, 0.35, 0.6)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_distance_bg"]
+bg_color = Color(0.1, 0.11, 0.14, 0.7)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_distance_fill"]
+bg_color = Color(1, 0.78, 0.2, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_stamina_bg"]
-bg_color = Color(0.15, 0.15, 0.18, 0.7)
+bg_color = Color(0.1, 0.11, 0.14, 0.75)
 corner_radius_top_left = 6
 corner_radius_top_right = 6
 corner_radius_bottom_right = 6
@@ -27,27 +46,93 @@ corner_radius_top_right = 6
 corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_slide"]
-bg_color = Color(0, 0, 0, 0.45)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-expand_margin_left = 8.0
-expand_margin_top = 4.0
-expand_margin_right = 8.0
-expand_margin_bottom = 4.0
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_nav"]
+bg_color = Color(0.1, 0.12, 0.18, 0.75)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.35, 0.42, 0.55, 0.8)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_nav_pressed"]
+bg_color = Color(0.22, 0.28, 0.4, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.55, 0.7, 0.9, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_boost"]
+bg_color = Color(0.1, 0.44, 0.88, 0.82)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.35, 0.75, 1, 0.95)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_boost_pressed"]
+bg_color = Color(0.2, 0.58, 1, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.65, 0.88, 1, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_slide"]
+bg_color = Color(0.12, 0.58, 0.42, 0.82)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.3, 0.85, 0.62, 0.95)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_slide_pressed"]
+bg_color = Color(0.18, 0.75, 0.55, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.5, 0.95, 0.75, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hint"]
-bg_color = Color(0, 0, 0, 0.35)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-expand_margin_left = 12.0
-expand_margin_top = 4.0
-expand_margin_right = 12.0
-expand_margin_bottom = 4.0
+content_margin_left = 14.0
+content_margin_top = 4.0
+content_margin_right = 14.0
+content_margin_bottom = 4.0
+bg_color = Color(0.06, 0.07, 0.1, 0.6)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.25, 0.28, 0.35, 0.4)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
 [node name="HUD" type="Control"]
 layout_mode = 3
@@ -59,83 +144,121 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_hud")
 
-[node name="TopBar" type="VBoxContainer" parent="."]
+[node name="SafeMargin" type="MarginContainer" parent="."]
+unique_name_in_owner = true
 layout_mode = 1
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -160.0
-offset_top = 16.0
-offset_right = 160.0
-offset_bottom = 84.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
-theme_override_constants/separation = 6
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 20
 
-[node name="TimeContainer" type="PanelContainer" parent="TopBar"]
+[node name="Layout" type="VBoxContainer" parent="SafeMargin"]
 layout_mode = 2
-size_flags_horizontal = 4
-theme_override_styles/panel = SubResource("StyleBoxFlat_time")
+mouse_filter = 2
 
-[node name="TimeLabel" type="Label" parent="TopBar/TimeContainer"]
+[node name="TopSection" type="VBoxContainer" parent="SafeMargin/Layout"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 26
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="HeaderRow" type="HBoxContainer" parent="SafeMargin/Layout/TopSection"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="HPPanel" type="PanelContainer" parent="SafeMargin/Layout/TopSection/HeaderRow"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_pill")
+
+[node name="HPContainer" type="HBoxContainer" parent="SafeMargin/Layout/TopSection/HeaderRow/HPPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Heart1" type="Label" parent="SafeMargin/Layout/TopSection/HeaderRow/HPPanel/HPContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "❤️"
+
+[node name="Heart2" type="Label" parent="SafeMargin/Layout/TopSection/HeaderRow/HPPanel/HPContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "❤️"
+
+[node name="Heart3" type="Label" parent="SafeMargin/Layout/TopSection/HeaderRow/HPPanel/HPContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "❤️"
+
+[node name="TimePanel" type="PanelContainer" parent="SafeMargin/Layout/TopSection/HeaderRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_pill")
+
+[node name="TimeLabel" type="Label" parent="SafeMargin/Layout/TopSection/HeaderRow/TimePanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
 text = "00:45.00"
 horizontal_alignment = 1
 
-[node name="DistanceContainer" type="VBoxContainer" parent="TopBar"]
+[node name="CoinPanel" type="PanelContainer" parent="SafeMargin/Layout/TopSection/HeaderRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_pill")
+
+[node name="CoinLabel" type="Label" parent="SafeMargin/Layout/TopSection/HeaderRow/CoinPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.25, 1)
+theme_override_font_sizes/font_size = 20
+text = "🪙 0"
+horizontal_alignment = 1
+
+[node name="DistanceContainer" type="VBoxContainer" parent="SafeMargin/Layout/TopSection"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 2
 
-[node name="DistanceLabel" type="Label" parent="TopBar/DistanceContainer"]
+[node name="DistanceLabel" type="Label" parent="SafeMargin/Layout/TopSection/DistanceContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 14
 text = "0.0m / 100m"
 horizontal_alignment = 1
 
-[node name="DistanceProgressBar" type="ProgressBar" parent="TopBar/DistanceContainer"]
-custom_minimum_size = Vector2(300, 10)
+[node name="DistanceProgressBar" type="ProgressBar" parent="SafeMargin/Layout/TopSection/DistanceContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
-size_flags_horizontal = 4
+theme_override_styles/background = SubResource("StyleBoxFlat_distance_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_distance_fill")
 show_percentage = false
 
-[node name="StatsContainer" type="VBoxContainer" parent="."]
-layout_mode = 1
-offset_left = 24.0
-offset_top = 20.0
-offset_right = 260.0
-offset_bottom = 140.0
-theme_override_constants/separation = 10
-
-[node name="HPContainer" type="HBoxContainer" parent="StatsContainer"]
+[node name="StaminaContainer" type="VBoxContainer" parent="SafeMargin/Layout/TopSection"]
 layout_mode = 2
-theme_override_constants/separation = 6
 
-[node name="Heart1" type="Label" parent="StatsContainer/HPContainer"]
+[node name="StaminaBar" type="ProgressBar" parent="SafeMargin/Layout/TopSection/StaminaContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
-text = "❤️"
-
-[node name="Heart2" type="Label" parent="StatsContainer/HPContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 28
-text = "❤️"
-
-[node name="Heart3" type="Label" parent="StatsContainer/HPContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 28
-text = "❤️"
-
-[node name="StaminaBar" type="ProgressBar" parent="StatsContainer"]
-custom_minimum_size = Vector2(220, 22)
-layout_mode = 2
+size_flags_horizontal = 3
 theme_override_styles/background = SubResource("StyleBoxFlat_stamina_bg")
 theme_override_styles/fill = SubResource("StyleBoxFlat_stamina_fill")
 value = 100.0
 show_percentage = false
 
-[node name="StaminaLabel" type="Label" parent="StatsContainer/StaminaBar"]
+[node name="StaminaLabel" type="Label" parent="SafeMargin/Layout/TopSection/StaminaContainer/StaminaBar"]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -144,60 +267,74 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 13
 text = "⚡ 100 / 100"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="SlidePanel" type="PanelContainer" parent="StatsContainer"]
+[node name="Spacer" type="Control" parent="SafeMargin/Layout"]
 layout_mode = 2
-size_flags_horizontal = 0
-theme_override_styles/panel = SubResource("StyleBoxFlat_slide")
+size_flags_vertical = 3
+mouse_filter = 2
 
-[node name="SlideLabel" type="Label" parent="StatsContainer/SlidePanel"]
+[node name="BottomSection" type="VBoxContainer" parent="SafeMargin/Layout"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
-text = "💨 슬라이드 [W/Swipe]: 준비 완료"
+mouse_filter = 2
+theme_override_constants/separation = 10
 
-[node name="CoinContainer" type="PanelContainer" parent="."]
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -160.0
-offset_top = 20.0
-offset_right = -24.0
-offset_bottom = 60.0
-grow_horizontal = 0
-theme_override_styles/panel = SubResource("StyleBoxFlat_time")
-
-[node name="CoinLabel" type="Label" parent="CoinContainer"]
+[node name="MobileControlBar" type="HBoxContainer" parent="SafeMargin/Layout/BottomSection"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.88, 0.25, 1)
-theme_override_font_sizes/font_size = 22
-text = "🪙 0"
-horizontal_alignment = 1
-vertical_alignment = 1
+mouse_filter = 2
+theme_override_constants/separation = 10
 
-[node name="BottomHint" type="PanelContainer" parent="."]
-layout_mode = 1
-anchors_preset = 7
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -280.0
-offset_top = -48.0
-offset_right = 280.0
-offset_bottom = -16.0
-grow_horizontal = 2
-grow_vertical = 0
+[node name="BtnLeft" type="Button" parent="SafeMargin/Layout/BottomSection/MobileControlBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(85, 72)
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_nav")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_nav_pressed")
+text = "◀"
+
+[node name="BtnBoost" type="Button" parent="SafeMargin/Layout/BottomSection/MobileControlBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_boost")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_boost_pressed")
+text = "⚡ 대시 (TAP)"
+
+[node name="BtnSlide" type="Button" parent="SafeMargin/Layout/BottomSection/MobileControlBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 72)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_slide")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_slide_pressed")
+text = "💨 돌파"
+
+[node name="BtnRight" type="Button" parent="SafeMargin/Layout/BottomSection/MobileControlBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(85, 72)
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_nav")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_nav_pressed")
+text = "▶"
+
+[node name="BottomHint" type="PanelContainer" parent="SafeMargin/Layout/BottomSection"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
 theme_override_styles/panel = SubResource("StyleBoxFlat_hint")
 
-[node name="HintLabel" type="Label" parent="BottomHint"]
+[node name="HintLabel" type="Label" parent="SafeMargin/Layout/BottomSection/BottomHint"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 0.85)
-theme_override_font_sizes/font_size = 13
-text = "[A/D or 좌우 스와이프] 레인 변경  |  [Space or 탭] 대시 부스트  |  [W or 위 스와이프] 무적 돌파"
+theme_override_font_sizes/font_size = 12
+text = "화면 스와이프 or 하단 버튼으로 조작"
 horizontal_alignment = 1
 vertical_alignment = 1

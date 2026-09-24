@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://cbase01chunk"]
+
+[ext_resource type="Script" path="res://scripts/base_chunk.gd" id="1_chunk"]
+
+[node name="BaseChunk" type="Node3D"]
+script = ExtResource("1_chunk")

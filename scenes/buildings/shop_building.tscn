@@ -1,0 +1,82 @@
+[gd_scene format=3 uid="uid://cshop01building"]
+
+[ext_resource type="Script" path="res://scripts/shop_building.gd" id="1_shop"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_body"]
+size = Vector3(2.2, 5.2, 4.8)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_shop_body"]
+albedo_color = Color(0.95, 0.82, 0.45, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="BoxMesh_roof"]
+size = Vector3(2.4, 0.4, 5.0)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_roof"]
+albedo_color = Color(0.3, 0.35, 0.45, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_awning"]
+size = Vector3(1.2, 0.25, 3.2)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_awning"]
+albedo_color = Color(0.9, 0.25, 0.25, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_door_frame"]
+size = Vector3(0.1, 2.2, 1.8)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_door"]
+albedo_color = Color(0.15, 0.12, 0.1, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_door"]
+size = Vector3(1.8, 2.0, 3.2)
+
+[node name="ShopBuilding" type="Node3D"]
+script = ExtResource("1_shop")
+
+[node name="Visuals" type="Node3D" parent="."]
+
+[node name="Body" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.6, 0)
+mesh = SubResource("BoxMesh_body")
+surface_material_override/0 = SubResource("StandardMaterial3D_shop_body")
+
+[node name="Roof" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.4, 0)
+mesh = SubResource("BoxMesh_roof")
+surface_material_override/0 = SubResource("StandardMaterial3D_roof")
+
+[node name="Awning" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 0.965926, 0.258819, 0, -0.258819, 0.965926, -1.3, 2.7, 0)
+mesh = SubResource("BoxMesh_awning")
+surface_material_override/0 = SubResource("StandardMaterial3D_awning")
+
+[node name="DoorInterior" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.06, 1.1, 0)
+mesh = SubResource("BoxMesh_door_frame")
+surface_material_override/0 = SubResource("StandardMaterial3D_door")
+
+[node name="EntranceDoor" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.6, 1.0, 0)
+collision_layer = 8
+collision_mask = 1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="EntranceDoor"]
+shape = SubResource("BoxShape3D_door")
+
+[node name="SwipePrompt" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.6, 2.7, 0)
+visible = false
+billboard = 1
+double_sided = false
+no_depth_test = true
+modulate = Color(1, 0.9, 0.2, 1)
+outline_modulate = Color(0, 0, 0, 1)
+text = "👈 SWIPE (입장)"
+font_size = 40
+outline_size = 8
+
+[node name="CameraTargetSpot" type="Marker3D" parent="."]
+transform = Transform3D(-0.872683, 0.351796, -0.338621, 0, 0.693487, 0.720469, 0.488287, 0.628741, -0.605194, -3.2, 5.5, -3.0)
+
+[node name="PlayerStopSpot" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.8, 0, 0)

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/item_data.gd" id="1_data"]
+[ext_resource type="PackedScene" uid="uid://dcoin01scene" path="res://scenes/obstacles/coin.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"coin_normal"
+display_name = "골드 코인"
+item_type = 0
+scene = ExtResource("2_scene")
+value = 10
+duration = 0.0
+attraction_speed = 12.0

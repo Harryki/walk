@@ -10,7 +10,7 @@ var slide_unlocked: bool = false # cost: 150
 const STAMINA_VALUES: Array[float] = [100.0, 120.0, 140.0]
 const STAMINA_COSTS: Array[int] = [50, 100]
 
-const SPEED_VALUES: Array[float] = [1.0, 1.3, 1.6]
+const SPEED_VALUES: Array[float] = [4.0, 6.5, 9.0]
 const SPEED_COSTS: Array[int] = [80, 160]
 
 const SLIDE_COST: int = 150

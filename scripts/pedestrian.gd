@@ -1,12 +1,25 @@
 class_name Pedestrian
 extends Area3D
 
-const SPEED: float = 1.0
+const SPEED: float = 3.0
+var current_speed: float = SPEED
 var is_dead: bool = false
 var bob_time: float = 0.0
 
 @onready var visual_root: Node3D = $Visuals
 @onready var body_mesh: MeshInstance3D = $Visuals/Body
+
+func apply_data(data: Resource) -> void:
+	if not data:
+		return
+	if data.has_method(&"get_random_speed"):
+		current_speed = data.get_random_speed()
+	var col = data.get(&"body_color")
+	if col != null and col != Color.WHITE and body_mesh:
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = col
+		mat.roughness = 0.8
+		body_mesh.material_override = mat
 
 # Static material cache to prevent redundant material creation and batch draw calls
 static var _cached_materials: Array[StandardMaterial3D] = []
@@ -22,7 +35,8 @@ const SHIRT_COLORS: Array[Color] = [
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
-	_apply_cached_material()
+	if not body_mesh.material_override:
+		_apply_cached_material()
 
 func _apply_cached_material() -> void:
 	if _cached_materials.is_empty():
@@ -40,7 +54,7 @@ func _physics_process(delta: float) -> void:
 		return
 	
 	# Synchronized with physics tick
-	global_position.z -= SPEED * delta
+	global_position.z -= current_speed * delta
 	
 	# Walking bob
 	bob_time += delta * 8.0

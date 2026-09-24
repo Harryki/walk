@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="SpawnTable" format=3 uid="uid://c24eathqhuexw"]
+
+[ext_resource type="Script" uid="uid://b33mfwl68vjn6" path="res://scripts/resources/spawn_table.gd" id="1_table"]
+[ext_resource type="Script" uid="uid://ch43i821yvn4u" path="res://scripts/resources/spawn_rule.gd" id="2_rule"]
+[ext_resource type="Resource" uid="uid://dslqkwgtjwot" path="res://resources/spawns/npc_normal.tres" id="3_norm_ped"]
+[ext_resource type="Resource" uid="uid://c6wpjgwqga6gh" path="res://resources/spawns/npc_jogger.tres" id="4_jog_ped"]
+
+[sub_resource type="Resource" id="Resource_rule_normal"]
+script = ExtResource("2_rule")
+data = ExtResource("3_norm_ped")
+weight = 70
+
+[sub_resource type="Resource" id="Resource_rule_jogger"]
+script = ExtResource("2_rule")
+data = ExtResource("4_jog_ped")
+weight = 30
+min_distance = 15.0
+
+[resource]
+script = ExtResource("1_table")
+table_name = "Default Pedestrian Spawns"
+rules = Array[Resource]([SubResource("Resource_rule_normal"), SubResource("Resource_rule_jogger")])

@@ -10,7 +10,7 @@ const MAX_LANE: int = 2
 # Speed & Boost parameters
 var base_speed: float = 1.0
 const TAP_BOOST: float = 0.5
-const MAX_SPEED: float = 5.0
+const MAX_SPEED: float = 16.0
 const SPEED_DECAY_DELAY: float = 0.25
 const SPEED_DECAY_RATE: float = 2.0 # Smoother, more satisfying decay
 
@@ -45,11 +45,14 @@ var is_invincible: bool = false
 var invincibility_timer: float = 0.0
 const INVINCIBILITY_DURATION: float = 1.0
 
-# Touch input detection
+# Pointer & touch input detection
 var touch_start_pos: Vector2 = Vector2.ZERO
 var touch_start_time: float = 0.0
 var is_touch_active: bool = false
+var has_swiped: bool = false
 const SWIPE_THRESHOLD: float = 30.0 # pixels
+const TAP_MAX_DURATION: float = 0.35 # seconds for tap vs hold
+var current_door_target: Node3D = null
 
 # Visual nodes
 @onready var visual_root: Node3D = $Visuals
@@ -106,7 +109,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if GameManager.current_state != GameManager.GameState.PLAYING:
 		return
 	
-	# 1. Action-based input: Handles Spacebar, Left Mouse Click, A/D, W smoothly
+	# 1. Action-based keyboard/button inputs
 	if event.is_action_pressed(&"tap_boost"):
 		try_tap_boost()
 		get_viewport().set_input_as_handled()
@@ -124,27 +127,56 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	
-	# 2. Touch screen gestures for mobile swipes
+	# 2. Pointer gestures (Touch & Mouse Drag/Swipe & Tap)
 	if event is InputEventScreenTouch:
-		if event.pressed:
-			touch_start_pos = event.position
-			touch_start_time = Time.get_ticks_msec() / 1000.0
-			is_touch_active = true
-		else:
-			if is_touch_active:
-				is_touch_active = false
-				var swipe_vec: Vector2 = event.position - touch_start_pos
-				
-				# Swipe gestures (Left, Right, Up)
-				if swipe_vec.length() >= SWIPE_THRESHOLD:
-					if absf(swipe_vec.x) > absf(swipe_vec.y):
-						if swipe_vec.x < -SWIPE_THRESHOLD:
-							change_lane(-1)
-						elif swipe_vec.x > SWIPE_THRESHOLD:
-							change_lane(1)
-					else:
-						if swipe_vec.y < -SWIPE_THRESHOLD:
-							try_slide()
+		_process_pointer_touch(event.position, event.pressed)
+	elif event is InputEventScreenDrag:
+		_process_pointer_drag(event.position)
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		_process_pointer_touch(event.position, event.pressed)
+	elif event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+		_process_pointer_drag(event.position)
+
+func _process_pointer_touch(pos: Vector2, pressed: bool) -> void:
+	if pressed:
+		touch_start_pos = pos
+		touch_start_time = Time.get_ticks_msec() / 1000.0
+		is_touch_active = true
+		has_swiped = false
+	else:
+		if not is_touch_active:
+			return
+		is_touch_active = false
+		
+		# If user didn't swipe yet, check if release motion counts as swipe or tap
+		if not has_swiped:
+			var swipe_vec: Vector2 = pos - touch_start_pos
+			if swipe_vec.length() >= SWIPE_THRESHOLD:
+				has_swiped = true
+				_execute_swipe_gesture(swipe_vec)
+			else:
+				var elapsed: float = (Time.get_ticks_msec() / 1000.0) - touch_start_time
+				if elapsed <= TAP_MAX_DURATION:
+					try_tap_boost()
+
+func _process_pointer_drag(pos: Vector2) -> void:
+	if not is_touch_active or has_swiped:
+		return
+	
+	var drag_vec: Vector2 = pos - touch_start_pos
+	if drag_vec.length() >= SWIPE_THRESHOLD:
+		has_swiped = true
+		_execute_swipe_gesture(drag_vec)
+
+func _execute_swipe_gesture(vec: Vector2) -> void:
+	if absf(vec.x) > absf(vec.y):
+		if vec.x < -SWIPE_THRESHOLD:
+			change_lane(-1)
+		elif vec.x > SWIPE_THRESHOLD:
+			change_lane(1)
+	else:
+		if vec.y < -SWIPE_THRESHOLD:
+			try_slide()
 
 func try_tap_boost() -> void:
 	if is_exhausted:
@@ -225,6 +257,12 @@ func _handle_slide_timers(delta: float) -> void:
 		GameManager.slide_cooldown_updated.emit(slide_cooldown_timer, SLIDE_COOLDOWN)
 
 func change_lane(direction: int) -> void:
+	# If player is in front of an enterable shop door and swipes left on the door lane
+	if direction < 0 and current_door_target != null and is_instance_valid(current_door_target):
+		if current_lane == MIN_LANE:
+			try_enter_shop()
+			return
+	
 	var next_lane := clampi(current_lane + direction, MIN_LANE, MAX_LANE)
 	if next_lane == current_lane:
 		return
@@ -245,6 +283,13 @@ func change_lane(direction: int) -> void:
 		lane_tween.parallel().tween_property(visual_root, "rotation:z", 0.0, 0.12)
 	
 	lane_changed.emit(current_lane)
+
+func try_enter_shop() -> void:
+	if current_door_target and is_instance_valid(current_door_target):
+		var target_shop = current_door_target
+		current_door_target = null
+		if target_shop.has_method(&"enter_shop"):
+			target_shop.enter_shop(self)
 
 func hit_by_obstacle() -> void:
 	if is_invincible or is_sliding:
@@ -271,10 +316,11 @@ func _update_visual_hop(delta: float) -> void:
 	if not visual_root or is_sliding:
 		return
 	
-	var hop_speed: float = current_speed * 12.0
+	var hop_speed: float = current_speed * 2.2 + 5.0
 	hop_time += delta * hop_speed
-	var hop_height: float = absf(sin(hop_time)) * 0.18
+	var hop_height: float = absf(sin(hop_time)) * 0.06
 	visual_root.position.y = hop_height
+	visual_root.rotation.x = deg_to_rad(5.0)
 
 func _punch_visual_scale() -> void:
 	if not visual_root:

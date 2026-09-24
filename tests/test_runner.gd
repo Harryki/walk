@@ -1,5 +1,10 @@
 extends Node
 
+const SpawnTableClass = preload("res://scripts/resources/spawn_table.gd")
+const NPCDataClass = preload("res://scripts/resources/npc_data.gd")
+const ChunkManagerClass = preload("res://scripts/chunk_manager.gd")
+const ShopBuildingClass = preload("res://scripts/shop_building.gd")
+
 func _ready() -> void:
 	print("--- STARTING GAMEPLAY MECHANICS VERIFICATION ---")
 	
@@ -12,7 +17,7 @@ func _ready() -> void:
 	# 1. Test SaveManager initial state & upgrade logic
 	print("[TEST 1] SaveManager stat progression:")
 	assert(SaveManager.get_max_stamina() == 100.0, "Initial max stamina should be 100")
-	assert(SaveManager.get_base_speed() == 1.0, "Initial base speed should be 1.0")
+	assert(SaveManager.get_base_speed() == SaveManager.SPEED_VALUES[0], "Initial base speed should match level 0")
 	assert(not SaveManager.is_slide_unlocked(), "Slide should initially be locked")
 	
 	# Add coins and test upgrades
@@ -25,7 +30,7 @@ func _ready() -> void:
 	
 	var speed_upgraded := SaveManager.upgrade_speed()
 	assert(speed_upgraded, "Speed upgrade 1 should succeed")
-	assert(SaveManager.get_base_speed() == 1.3, "Speed should be 1.3 after upgrade")
+	assert(SaveManager.get_base_speed() == SaveManager.SPEED_VALUES[1], "Speed should match level 1 after upgrade")
 	
 	var slide_unlocked := SaveManager.unlock_slide()
 	assert(slide_unlocked, "Slide unlock should succeed")
@@ -68,13 +73,39 @@ func _ready() -> void:
 	assert(player.current_stamina == initial_stam - 10.0, "Spacebar input must consume 5 stamina")
 	print("  -> Spacebar input event PASSED!")
 	
-	# Test Mouse Click (Screen Tap) input event
-	var click_event := InputEventMouseButton.new()
-	click_event.button_index = MOUSE_BUTTON_LEFT
-	click_event.pressed = true
-	player._unhandled_input(click_event)
-	assert(player.current_stamina == initial_stam - 15.0, "Mouse click input must consume 5 stamina")
+	# Test Mouse Click (Screen Tap) input event: Down then Up
+	var click_down := InputEventMouseButton.new()
+	click_down.button_index = MOUSE_BUTTON_LEFT
+	click_down.pressed = true
+	player._unhandled_input(click_down)
+	
+	var click_up := InputEventMouseButton.new()
+	click_up.button_index = MOUSE_BUTTON_LEFT
+	click_up.pressed = false
+	player._unhandled_input(click_up)
+	assert(player.current_stamina == initial_stam - 15.0, "Mouse click (tap) must consume 5 stamina")
 	print("  -> Mouse Click (Tap) input event PASSED!")
+	
+	# Test Swipe Gesture: Must NOT consume tap boost stamina!
+	var stam_before_swipe: float = player.current_stamina
+	var initial_lane: int = player.current_lane
+	var touch_down := InputEventScreenTouch.new()
+	touch_down.position = Vector2(200, 500)
+	touch_down.pressed = true
+	player._unhandled_input(touch_down)
+	
+	var touch_drag := InputEventScreenDrag.new()
+	touch_drag.position = Vector2(260, 500) # swipe right +60px
+	player._unhandled_input(touch_drag)
+	
+	var touch_up := InputEventScreenTouch.new()
+	touch_up.position = Vector2(260, 500)
+	touch_up.pressed = false
+	player._unhandled_input(touch_up)
+	
+	assert(player.current_lane == initial_lane + 1, "Swipe right must change lane right")
+	assert(player.current_stamina == stam_before_swipe, "Swipe gesture must NOT consume tap boost stamina")
+	print("  -> Swipe gesture (0 stamina cost) PASSED!")
 	
 	# Test slide
 	var stam_before_slide: float = player.current_stamina
@@ -94,12 +125,105 @@ func _ready() -> void:
 	assert(GameManager.current_hp == initial_hp - 1, "Invincible player should not take additional damage")
 	print("  -> Damage & Invincibility blink PASSED!")
 	
+	# 3. Test Data-driven SpawnTable
+	print("[TEST 3] Data-Driven Spawner:")
+	var npc_table = load("res://resources/spawns/spawn_table_default.tres")
+	assert(npc_table != null, "Default NPC SpawnTable should load")
+	var picked_npc = npc_table.pick_random(0.0)
+	assert(picked_npc != null and picked_npc.id == &"pedestrian_normal", "Should pick valid normal pedestrian at distance 0")
+	var jogger_npc = npc_table.pick_random(50.0)
+	assert(jogger_npc != null, "Should pick valid NPCData at distance 50")
+	print("  -> SpawnTable weighted sampling PASSED!")
+	
+	# 4. Test ChunkManager & BaseChunk
+	print("[TEST 4] ChunkManager & BaseChunk:")
+	var chunk_mgr = ChunkManagerClass.new()
+	add_child(chunk_mgr)
+	chunk_mgr.setup(player)
+	assert(chunk_mgr.active_chunks.size() == 5, "ChunkManager should maintain 5 active chunks")
+	assert(chunk_mgr.active_chunks[2].has_shop == true, "Chunk 2 should have enterable shop")
+	print("  -> ChunkManager ring buffer setup PASSED!")
+	
+	# 5. Test InteriorManager, Swipe-to-enter Door & Shop Seamless Transition
+	print("[TEST 5] Door Swipe-to-Enter & Interior Transition:")
+	var shop = chunk_mgr.active_chunks[2].enterable_building_instance
+	assert(shop != null, "Shop building should exist in Chunk 2")
+	
+	# Player arrives in front of door
+	shop._on_door_body_entered(player)
+	assert(player.current_door_target == shop, "Player should register door target")
+	assert(GameManager.current_state == GameManager.GameState.PLAYING, "Player in front of door must NOT enter automatically")
+	
+	# If player does NOT swipe left, they can pass by freely
+	# When player reaches door lane (MIN_LANE) and swipes left:
+	player.current_lane = player.MIN_LANE
+	player.change_lane(-1)
+	assert(GameManager.current_state == GameManager.GameState.IN_INTERIOR, "Swiping left in front of door must enter shop")
+	
+	# Exit shop
+	InteriorManager.exit_shop()
+	assert(GameManager.current_state == GameManager.GameState.PLAYING, "Exiting shop must return to PLAYING state")
+	
+	# Verify TransitionTextureMask scene and script
+	var mask_scene: PackedScene = load("res://scenes/ui/transition_mask.tscn")
+	assert(mask_scene != null, "Transition mask scene must load")
+	var mask_layer = mask_scene.instantiate()
+	add_child(mask_layer)
+	var mask_node = mask_layer.get_node("TransitionMask")
+	assert(mask_node is TransitionTextureMask, "Mask node must be TransitionTextureMask")
+	assert(mask_node.default_duration >= 0.8, "Transition mask should have slower duration >= 0.8s")
+	mask_layer.queue_free()
+	
+	# Verify 3D Voxel ShopInterior scene and speech bubble interaction
+	var interior_scene: PackedScene = load("res://scenes/buildings/shop_interior.tscn")
+	assert(interior_scene != null, "ShopInterior scene must load")
+	var interior: ShopInterior = interior_scene.instantiate()
+	add_child(interior)
+	interior.start_interior(player)
+	assert(interior.is_active, "ShopInterior should become active")
+	
+	# Test station navigation and speech bubble updates
+	interior.go_to_station(0)
+	assert(interior.current_station == 0, "Current station should be 0 (Stamina)")
+	assert(interior.bubble_title.text.contains("스태미너"), "Bubble title should show stamina")
+	
+	interior.go_to_station(1)
+	assert(interior.current_station == 1, "Current station should be 1 (Speed)")
+	assert(interior.bubble_title.text.contains("속도"), "Bubble title should show speed")
+	
+	interior.go_to_station(2)
+	assert(interior.current_station == 2, "Current station should be 2 (Slide)")
+	assert(interior.bubble_title.text.contains("슬라이드"), "Bubble title should show slide")
+	
+	interior.go_to_station(3)
+	assert(interior.current_station == 3, "Current station should be 3 (Exit Mat)")
+	assert(interior.bubble_title.text.contains("나가기"), "Bubble title should show exit")
+	
+	interior.queue_free()
+	print("  -> Door Swipe, 3D Voxel ShopInterior & Speech Bubble PASSED!")
+	
 	# Clean up save data so user starts fresh
 	SaveManager.coins = 0
 	SaveManager.max_stamina_level = 0
 	SaveManager.base_speed_level = 0
 	SaveManager.slide_unlocked = false
 	SaveManager.save_data()
+	
+	# Verify ShopInterior camera positioning
+	var main_scene = load("res://scenes/main.tscn").instantiate()
+	add_child(main_scene)
+	var cam: Camera3D = main_scene.get_node("Camera3D")
+	var shop_interior_node = main_scene.get_node("ShopInterior")
+	var spot_node: Marker3D = shop_interior_node.get_node("CameraTargetSpot")
+	cam.global_transform = spot_node.global_transform
+	cam.size = 7.5
+	
+	var p_target = shop_interior_node.global_position + Vector3(0.0, 0.8, 0.0)
+	var unproj_center = cam.unproject_position(p_target)
+	var vp_rect = get_viewport().get_visible_rect()
+	assert(unproj_center.x > 0 and unproj_center.x < vp_rect.size.x, "Shop center must be within screen width")
+	assert(unproj_center.y > 0 and unproj_center.y < vp_rect.size.y, "Shop center must be within screen height")
+	main_scene.queue_free()
 	
 	print("--- ALL VERIFICATION TESTS PASSED SUCCESSFULLY! ---")
 	get_tree().quit()

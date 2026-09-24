@@ -1,0 +1,310 @@
+[gd_scene format=3 uid="uid://cshopinterior01"]
+
+[ext_resource type="Script" path="res://scripts/shop_interior.gd" id="1_interior"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_floor"]
+size = Vector3(8, 0.2, 6)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
+albedo_color = Color(0.68, 0.48, 0.3, 1)
+roughness = 0.7
+
+[sub_resource type="BoxMesh" id="BoxMesh_wall_back"]
+size = Vector3(8, 4, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wall"]
+albedo_color = Color(0.92, 0.88, 0.82, 1)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="BoxMesh_wall_side"]
+size = Vector3(0.3, 4, 6)
+
+[sub_resource type="BoxMesh" id="BoxMesh_counter"]
+size = Vector3(6.4, 0.85, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_counter"]
+albedo_color = Color(0.45, 0.25, 0.15, 1)
+roughness = 0.5
+
+[sub_resource type="BoxMesh" id="BoxMesh_pedestal"]
+size = Vector3(0.7, 0.25, 0.7)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pedestal"]
+albedo_color = Color(0.85, 0.75, 0.6, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_battery"]
+size = Vector3(0.35, 0.45, 0.35)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_stamina"]
+albedo_color = Color(0.2, 0.85, 0.35, 1)
+roughness = 0.3
+emission_enabled = true
+emission = Color(0.1, 0.5, 0.2, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_cap"]
+size = Vector3(0.15, 0.1, 0.15)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_silver"]
+albedo_color = Color(0.85, 0.9, 0.95, 1)
+metallic = 0.8
+roughness = 0.2
+
+[sub_resource type="BoxMesh" id="BoxMesh_bolt"]
+size = Vector3(0.08, 0.28, 0.37)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gold"]
+albedo_color = Color(1, 0.85, 0.1, 1)
+metallic = 0.5
+roughness = 0.3
+emission_enabled = true
+emission = Color(0.8, 0.6, 0.05, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_shoe_sole"]
+size = Vector3(0.48, 0.08, 0.26)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_white"]
+albedo_color = Color(0.95, 0.95, 0.95, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_shoe_body"]
+size = Vector3(0.42, 0.22, 0.24)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_speed"]
+albedo_color = Color(0.25, 0.65, 0.95, 1)
+roughness = 0.4
+emission_enabled = true
+emission = Color(0.1, 0.3, 0.6, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_shoe_wing"]
+size = Vector3(0.08, 0.18, 0.35)
+
+[sub_resource type="BoxMesh" id="BoxMesh_shield"]
+size = Vector3(0.38, 0.42, 0.12)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_slide"]
+albedo_color = Color(0.9, 0.25, 0.35, 1)
+roughness = 0.3
+emission_enabled = true
+emission = Color(0.6, 0.1, 0.2, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_shield_star"]
+size = Vector3(0.18, 0.18, 0.16)
+
+[sub_resource type="BoxMesh" id="BoxMesh_mat"]
+size = Vector3(1.3, 0.04, 1.1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_mat"]
+albedo_color = Color(0.65, 0.2, 0.22, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="BoxMesh_bubble_panel"]
+size = Vector3(2.8, 1.05, 0.04)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bubble"]
+albedo_color = Color(0.1, 0.12, 0.16, 0.92)
+roughness = 0.5
+
+[sub_resource type="PrismMesh" id="PrismMesh_tail"]
+size = Vector3(0.28, 0.22, 0.04)
+
+[sub_resource type="BoxMesh" id="BoxMesh_clerk_body"]
+size = Vector3(0.5, 0.6, 0.4)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_clerk"]
+albedo_color = Color(0.3, 0.5, 0.75, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_clerk_head"]
+size = Vector3(0.4, 0.4, 0.35)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_skin"]
+albedo_color = Color(0.95, 0.8, 0.65, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_clerk_hat"]
+size = Vector3(0.46, 0.15, 0.4)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_hat"]
+albedo_color = Color(0.9, 0.2, 0.2, 1)
+
+[node name="ShopInterior" type="Node3D"]
+script = ExtResource("1_interior")
+
+[node name="World" type="Node3D" parent="."]
+
+[node name="Floor" type="MeshInstance3D" parent="World"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+mesh = SubResource("BoxMesh_floor")
+surface_material_override/0 = SubResource("StandardMaterial3D_floor")
+
+[node name="BackWall" type="MeshInstance3D" parent="World"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 2.2)
+mesh = SubResource("BoxMesh_wall_back")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="LeftWall" type="MeshInstance3D" parent="World"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 2, 0)
+mesh = SubResource("BoxMesh_wall_side")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="RightWall" type="MeshInstance3D" parent="World"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 2, 0)
+mesh = SubResource("BoxMesh_wall_side")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="OmniLight3D" type="OmniLight3D" parent="World"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.5, 0.5)
+light_color = Color(1, 0.95, 0.88, 1)
+light_energy = 1.4
+omni_range = 14.0
+
+[node name="Shopkeeper" type="Node3D" parent="World"]
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0.4, 1.7)
+
+[node name="Body" type="MeshInstance3D" parent="World/Shopkeeper"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+mesh = SubResource("BoxMesh_clerk_body")
+surface_material_override/0 = SubResource("StandardMaterial3D_clerk")
+
+[node name="Head" type="MeshInstance3D" parent="World/Shopkeeper"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+mesh = SubResource("BoxMesh_clerk_head")
+surface_material_override/0 = SubResource("StandardMaterial3D_skin")
+
+[node name="Hat" type="MeshInstance3D" parent="World/Shopkeeper"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.05, 0)
+mesh = SubResource("BoxMesh_clerk_hat")
+surface_material_override/0 = SubResource("StandardMaterial3D_hat")
+
+[node name="Counter" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.425, 1.2)
+mesh = SubResource("BoxMesh_counter")
+surface_material_override/0 = SubResource("StandardMaterial3D_counter")
+
+[node name="Item1_Stamina" type="Node3D" parent="Counter"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.8, 0.55, 0)
+
+[node name="Pedestal" type="MeshInstance3D" parent="Counter/Item1_Stamina"]
+mesh = SubResource("BoxMesh_pedestal")
+surface_material_override/0 = SubResource("StandardMaterial3D_pedestal")
+
+[node name="Visual" type="Node3D" parent="Counter/Item1_Stamina"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.35, 0)
+
+[node name="Battery" type="MeshInstance3D" parent="Counter/Item1_Stamina/Visual"]
+mesh = SubResource("BoxMesh_battery")
+surface_material_override/0 = SubResource("StandardMaterial3D_stamina")
+
+[node name="Cap" type="MeshInstance3D" parent="Counter/Item1_Stamina/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.27, 0)
+mesh = SubResource("BoxMesh_cap")
+surface_material_override/0 = SubResource("StandardMaterial3D_silver")
+
+[node name="Bolt" type="MeshInstance3D" parent="Counter/Item1_Stamina/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.02)
+mesh = SubResource("BoxMesh_bolt")
+surface_material_override/0 = SubResource("StandardMaterial3D_gold")
+
+[node name="Item2_Speed" type="Node3D" parent="Counter"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 0)
+
+[node name="Pedestal" type="MeshInstance3D" parent="Counter/Item2_Speed"]
+mesh = SubResource("BoxMesh_pedestal")
+surface_material_override/0 = SubResource("StandardMaterial3D_pedestal")
+
+[node name="Visual" type="Node3D" parent="Counter/Item2_Speed"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.35, 0)
+
+[node name="Sole" type="MeshInstance3D" parent="Counter/Item2_Speed/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.08, 0)
+mesh = SubResource("BoxMesh_shoe_sole")
+surface_material_override/0 = SubResource("StandardMaterial3D_white")
+
+[node name="ShoeBody" type="MeshInstance3D" parent="Counter/Item2_Speed/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0)
+mesh = SubResource("BoxMesh_shoe_body")
+surface_material_override/0 = SubResource("StandardMaterial3D_speed")
+
+[node name="Wing" type="MeshInstance3D" parent="Counter/Item2_Speed/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.12, -0.02)
+mesh = SubResource("BoxMesh_shoe_wing")
+surface_material_override/0 = SubResource("StandardMaterial3D_gold")
+
+[node name="Item3_Slide" type="Node3D" parent="Counter"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.8, 0.55, 0)
+
+[node name="Pedestal" type="MeshInstance3D" parent="Counter/Item3_Slide"]
+mesh = SubResource("BoxMesh_pedestal")
+surface_material_override/0 = SubResource("StandardMaterial3D_pedestal")
+
+[node name="Visual" type="Node3D" parent="Counter/Item3_Slide"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.35, 0)
+
+[node name="ShieldPlate" type="MeshInstance3D" parent="Counter/Item3_Slide/Visual"]
+mesh = SubResource("BoxMesh_shield")
+surface_material_override/0 = SubResource("StandardMaterial3D_slide")
+
+[node name="Star" type="MeshInstance3D" parent="Counter/Item3_Slide/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.04)
+mesh = SubResource("BoxMesh_shield_star")
+surface_material_override/0 = SubResource("StandardMaterial3D_gold")
+
+[node name="ExitMat" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.2, 0.02, -1.8)
+
+[node name="MatMesh" type="MeshInstance3D" parent="ExitMat"]
+mesh = SubResource("BoxMesh_mat")
+surface_material_override/0 = SubResource("StandardMaterial3D_mat")
+
+[node name="ExitLabel" type="Label3D" parent="ExitMat"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+billboard = 1
+no_depth_test = true
+modulate = Color(1, 0.9, 0.25, 1)
+outline_modulate = Color(0, 0, 0, 1)
+text = "🚪 EXIT
+(거리로 나가기)"
+font_size = 28
+outline_size = 6
+
+[node name="SpeechBubble" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.4, 1.2)
+
+[node name="Panel" type="MeshInstance3D" parent="SpeechBubble"]
+mesh = SubResource("BoxMesh_bubble_panel")
+surface_material_override/0 = SubResource("StandardMaterial3D_bubble")
+
+[node name="Tail" type="MeshInstance3D" parent="SpeechBubble"]
+transform = Transform3D(1, 0, 0, 0, -1, 8.74228e-08, 0, -8.74228e-08, -1, 0, -0.62, 0)
+mesh = SubResource("PrismMesh_tail")
+surface_material_override/0 = SubResource("StandardMaterial3D_bubble")
+
+[node name="Title" type="Label3D" parent="SpeechBubble"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.28, 0.03)
+billboard = 1
+no_depth_test = true
+modulate = Color(1, 1, 1, 1)
+outline_modulate = Color(0, 0, 0, 1)
+text = "⚡ 최대 스태미너 강화"
+font_size = 30
+outline_size = 8
+
+[node name="Desc" type="Label3D" parent="SpeechBubble"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.04, 0.03)
+billboard = 1
+no_depth_test = true
+modulate = Color(0.9, 0.92, 0.95, 1)
+outline_modulate = Color(0, 0, 0, 1)
+text = "최대치 100 -> 120 (+20)"
+font_size = 22
+outline_size = 6
+
+[node name="Cost" type="Label3D" parent="SpeechBubble"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.32, 0.03)
+billboard = 1
+no_depth_test = true
+modulate = Color(1, 0.85, 0.2, 1)
+outline_modulate = Color(0, 0, 0, 1)
+text = "💰 50 코인 [탭하여 구매]"
+font_size = 24
+outline_size = 6
+
+[node name="CameraTargetSpot" type="Marker3D" parent="."]
+transform = Transform3D(-0.872683, 0.351796, -0.338621, 0, 0.693487, 0.720469, 0.488287, 0.628741, -0.605194, -4.063, 9.446, -7.262)

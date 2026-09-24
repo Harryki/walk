@@ -4,6 +4,8 @@ extends Node3D
 @export var pedestrian_scene: PackedScene
 @export var coin_scene: PackedScene
 @export var car_scene: PackedScene
+@export var npc_spawn_table: SpawnTable
+@export var item_spawn_table: SpawnTable
 
 var player: Player
 
@@ -73,15 +75,25 @@ func _spawn_pedestrians(player_z: float) -> void:
 		last_pedestrian_lanes.append(lane_idx)
 		var lane_x: float = LANES[lane_idx]
 		
-		var ped := pedestrian_scene.instantiate() as Node3D
+		var chosen_scene := pedestrian_scene
+		var chosen_data: NPCData = null
+		if npc_spawn_table:
+			var res := npc_spawn_table.pick_random(player_z)
+			if res is NPCData and res.scene:
+				chosen_scene = res.scene
+				chosen_data = res
+		
+		if not chosen_scene:
+			continue
+			
+		var ped := chosen_scene.instantiate() as Node3D
 		ped.position = Vector3(lane_x, 0.0, spawn_z)
+		if chosen_data and ped.has_method(&"apply_data"):
+			ped.apply_data(chosen_data)
 		add_child(ped)
 		_active_entities.append(ped)
 
 func _spawn_coin(player_z: float) -> void:
-	if not coin_scene:
-		return
-	
 	var spawn_z := player_z + SPAWN_AHEAD_DISTANCE + randf_range(-1.0, 1.0)
 	if spawn_z > 98.0:
 		return
@@ -97,8 +109,21 @@ func _spawn_coin(player_z: float) -> void:
 	var lane_idx: int = candidate_lanes.pick_random()
 	var lane_x: float = LANES[lane_idx]
 	
-	var coin := coin_scene.instantiate() as Node3D
+	var chosen_scene := coin_scene
+	var chosen_data: ItemData = null
+	if item_spawn_table:
+		var res := item_spawn_table.pick_random(player_z)
+		if res is ItemData and res.scene:
+			chosen_scene = res.scene
+			chosen_data = res
+	
+	if not chosen_scene:
+		return
+		
+	var coin := chosen_scene.instantiate() as Node3D
 	coin.position = Vector3(lane_x, 0.4, spawn_z)
+	if chosen_data and coin.has_method(&"apply_data"):
+		coin.apply_data(chosen_data)
 	add_child(coin)
 	_active_entities.append(coin)
 

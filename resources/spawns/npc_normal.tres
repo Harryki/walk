@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="NPCData" format=3 uid="uid://dslqkwgtjwot"]
+
+[ext_resource type="Script" uid="uid://cxcn4qqi1nsph" path="res://scripts/resources/npc_data.gd" id="1_data"]
+[ext_resource type="PackedScene" uid="uid://ciprwf6lgndec" path="res://scenes/obstacles/pedestrian.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_data")
+scene = ExtResource("2_scene")
+move_speed_min = 8.0
+move_speed_max = 10.0
