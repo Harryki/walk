@@ -4,6 +4,9 @@ const SpawnTableClass = preload("res://scripts/resources/spawn_table.gd")
 const NPCDataClass = preload("res://scripts/resources/npc_data.gd")
 const ChunkManagerClass = preload("res://scripts/chunk_manager.gd")
 const ShopBuildingClass = preload("res://scripts/shop_building.gd")
+const CrosswalkChunkClass = preload("res://scripts/crosswalk_chunk.gd")
+const TrafficLightClass = preload("res://scripts/traffic_light.gd")
+const CrossCarClass = preload("res://scripts/cross_car.gd")
 
 func _ready() -> void:
 	print("--- STARTING GAMEPLAY MECHANICS VERIFICATION ---")
@@ -224,6 +227,69 @@ func _ready() -> void:
 	assert(unproj_center.x > 0 and unproj_center.x < vp_rect.size.x, "Shop center must be within screen width")
 	assert(unproj_center.y > 0 and unproj_center.y < vp_rect.size.y, "Shop center must be within screen height")
 	main_scene.queue_free()
+	
+	# 6. Test Crosswalk, TrafficLight & CrossCar mechanics
+	print("[TEST 6] Crosswalk & Multi-Tier Traffic:")
+	var cw_scene: PackedScene = load("res://scenes/chunks/crosswalk_chunk.tscn")
+	assert(cw_scene != null, "Crosswalk chunk scene must load")
+	
+	# Test Tier 1, Tier 2, Tier 3 configuration
+	var cw_t1 = cw_scene.instantiate()
+	add_child(cw_t1)
+	cw_t1.setup_crosswalk(3, 1)
+	assert(cw_t1.cross_lanes.size() == 1, "Tier 1 must have 1 cross lane")
+	assert(cw_t1.traffic_light != null, "TrafficLight must be created")
+	assert(cw_t1.traffic_light.is_safe_to_cross(), "Initial traffic light must be safe (GREEN)")
+	
+	# Test traffic light transitions
+	cw_t1.traffic_light._set_state(TrafficLightClass.LightState.WARNING)
+	assert(cw_t1.traffic_light.is_safe_to_cross(), "WARNING state should still allow clearing crossing")
+	cw_t1.traffic_light._set_state(TrafficLightClass.LightState.RED)
+	assert(cw_t1.traffic_light.is_red(), "RED state should flag as red")
+	assert(not cw_t1.traffic_light.is_safe_to_cross(), "RED state is not safe")
+	
+	# Test Tier 2 and Tier 3 lane counts
+	var cw_t2 = cw_scene.instantiate()
+	add_child(cw_t2)
+	cw_t2.setup_crosswalk(6, 2)
+	assert(cw_t2.cross_lanes.size() == 2, "Tier 2 must have 2 cross lanes")
+	
+	var cw_t3 = cw_scene.instantiate()
+	add_child(cw_t3)
+	cw_t3.setup_crosswalk(9, 3)
+	assert(cw_t3.cross_lanes.size() == 4, "Tier 3 must have 4 cross lanes")
+	
+	# Test CrossCar lethal collision on player
+	var cross_car_scene: PackedScene = load("res://scenes/environment/cross_car.tscn")
+	assert(cross_car_scene != null, "CrossCar scene must load")
+	var car = cross_car_scene.instantiate()
+	add_child(car)
+	car.setup(25.0, 1.0)
+	
+	# Reset player state
+	GameManager.current_state = GameManager.GameState.PLAYING
+	GameManager.current_hp = 3
+	player.is_sliding = false
+	player.is_invincible = false
+	
+	# Direct hit while walking
+	car._on_body_entered(player)
+	assert(GameManager.current_state == GameManager.GameState.GAME_OVER, "Car collision without slide must cause lethal GAME_OVER")
+	
+	# Collision while sliding
+	GameManager.current_state = GameManager.GameState.PLAYING
+	player.is_sliding = true
+	player.is_invincible = true
+	car._on_body_entered(player)
+	assert(GameManager.current_state == GameManager.GameState.PLAYING, "Sliding player must evade lethal car collision")
+	
+	# Clean up test nodes
+	cw_t1.queue_free()
+	cw_t2.queue_free()
+	cw_t3.queue_free()
+	car.queue_free()
+	player.queue_free()
+	print("  -> Multi-Tier Crosswalks, Traffic Lights & Lethal Cars PASSED!")
 	
 	print("--- ALL VERIFICATION TESTS PASSED SUCCESSFULLY! ---")
 	get_tree().quit()

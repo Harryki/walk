@@ -21,8 +21,8 @@ enum GameState {
 	VICTORY
 }     
 
-const TARGET_DISTANCE: float = 100.0
-const TIME_LIMIT: float = 45.0
+const TARGET_DISTANCE: float = 300.0
+const TIME_LIMIT: float = 90.0
 const MAX_HP: int = 3 
 
 var current_state: GameState = GameState.READY

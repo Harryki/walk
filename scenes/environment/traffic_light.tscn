@@ -1,0 +1,76 @@
+[gd_scene format=3 uid="uid://vva46hw7afde"]
+
+[ext_resource type="Script" path="res://scripts/traffic_light.gd" id="1_traffic_light"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_pole"]
+size = Vector3(0.16, 3.4, 0.16)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pole"]
+albedo_color = Color(0.25, 0.26, 0.28, 1)
+metallic = 0.8
+roughness = 0.3
+
+[sub_resource type="BoxMesh" id="BoxMesh_housing"]
+size = Vector3(0.48, 0.95, 0.32)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_housing"]
+albedo_color = Color(0.18, 0.18, 0.2, 1)
+roughness = 0.6
+
+[sub_resource type="BoxMesh" id="BoxMesh_light"]
+size = Vector3(0.28, 0.28, 0.12)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_light_red"]
+albedo_color = Color(0.25, 0.05, 0.05, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_light_green"]
+albedo_color = Color(0.15, 1, 0.35, 1)
+emission_enabled = true
+emission = Color(0.1, 0.9, 0.25, 1)
+emission_energy_multiplier = 2.5
+
+[sub_resource type="BoxMesh" id="BoxMesh_hood"]
+size = Vector3(0.34, 0.08, 0.2)
+
+[node name="TrafficLight" type="Node3D"]
+script = ExtResource("1_traffic_light")
+
+[node name="Pole" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
+mesh = SubResource("BoxMesh_pole")
+surface_material_override/0 = SubResource("StandardMaterial3D_pole")
+
+[node name="Housing" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.7, 0.1)
+mesh = SubResource("BoxMesh_housing")
+surface_material_override/0 = SubResource("StandardMaterial3D_housing")
+
+[node name="HoodTop" type="MeshInstance3D" parent="Housing"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.38, -0.1)
+mesh = SubResource("BoxMesh_hood")
+surface_material_override/0 = SubResource("StandardMaterial3D_housing")
+
+[node name="HoodBottom" type="MeshInstance3D" parent="Housing"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, -0.1)
+mesh = SubResource("BoxMesh_hood")
+surface_material_override/0 = SubResource("StandardMaterial3D_housing")
+
+[node name="RedLight" type="MeshInstance3D" parent="Housing"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.22, -0.12)
+mesh = SubResource("BoxMesh_light")
+surface_material_override/0 = SubResource("StandardMaterial3D_light_red")
+
+[node name="GreenLight" type="MeshInstance3D" parent="Housing"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.22, -0.12)
+mesh = SubResource("BoxMesh_light")
+surface_material_override/0 = SubResource("StandardMaterial3D_light_green")
+
+[node name="CountdownLabel" type="Label3D" parent="Housing"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.72, 0)
+billboard = 1
+no_depth_test = true
+modulate = Color(0.2, 1, 0.4, 1)
+outline_modulate = Color(0, 0, 0, 1)
+text = "5"
+font_size = 32
+outline_size = 8

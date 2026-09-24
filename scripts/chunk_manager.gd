@@ -2,13 +2,17 @@ class_name ChunkManager
 extends Node3D
 
 const CHUNK_SCENE: PackedScene = preload("res://scenes/chunks/base_chunk.tscn")
+const CROSSWALK_CHUNK_SCENE: PackedScene = preload("res://scenes/chunks/crosswalk_chunk.tscn")
+
 const CHUNK_LENGTH: float = 25.0
 const ACTIVE_CHUNK_COUNT: int = 5
-const GOAL_Z: float = 100.0
+const GOAL_Z: float = 300.0
 
 var player: CharacterBody3D
 var active_chunks: Array[Node3D] = []
 var next_chunk_z: float = -25.0
+var current_chunk_idx: int = 0
+var chunks_since_last_crosswalk: int = 0
 
 func setup(p_player: CharacterBody3D) -> void:
 	player = p_player
@@ -17,33 +21,69 @@ func setup(p_player: CharacterBody3D) -> void:
 
 func _spawn_initial_chunks() -> void:
 	for i in range(ACTIVE_CHUNK_COUNT):
-		var chunk := CHUNK_SCENE.instantiate() as Node3D
-		chunk.position = Vector3(0.0, 0.0, next_chunk_z)
-		# Place shop in chunk 2 (Z = 25m to 50m)
-		var has_shop: bool = (i == 2)
-		if chunk.has_method(&"setup"):
-			chunk.setup(i, has_shop)
+		var chunk := _create_chunk(current_chunk_idx, next_chunk_z)
 		add_child(chunk)
 		active_chunks.append(chunk)
 		next_chunk_z += CHUNK_LENGTH
+		current_chunk_idx += 1
+
+func _create_chunk(p_index: int, pos_z: float) -> Node3D:
+	var is_crosswalk := false
+	
+	# Determine if this chunk is a crosswalk
+	if p_index == 3:
+		# First crosswalk (Tier 1) at Z = 50m ~ 75m
+		is_crosswalk = true
+		chunks_since_last_crosswalk = 0
+	elif p_index > 3 and chunks_since_last_crosswalk >= 2:
+		is_crosswalk = true
+		chunks_since_last_crosswalk = 0
+	else:
+		chunks_since_last_crosswalk += 1
+	
+	if is_crosswalk:
+		var cw := CROSSWALK_CHUNK_SCENE.instantiate() as CrosswalkChunk
+		cw.position = Vector3(0.0, 0.0, pos_z)
+		
+		# Determine tier based on distance
+		var tier: int = 1
+		if pos_z >= 220.0:
+			tier = 3 # 4-lane highway
+		elif pos_z >= 110.0:
+			tier = 2 # 2-lane street
+		else:
+			tier = 1 # 1-lane one-way
+		
+		cw.setup_crosswalk(p_index, tier)
+		return cw
+	else:
+		var base := CHUNK_SCENE.instantiate() as BaseChunk
+		base.position = Vector3(0.0, 0.0, pos_z)
+		var has_shop: bool = (p_index == 2) # Place shop building in chunk 2 (Z = 25m to 50m)
+		base.setup(p_index, has_shop)
+		return base
 
 func _process(_delta: float) -> void:
 	if not is_instance_valid(player):
 		return
 	
-	# In endless mode or if player goes past 100m, recycles chunks seamlessly
 	var player_z: float = player.global_position.z
 	if active_chunks.size() >= ACTIVE_CHUNK_COUNT:
 		var oldest_chunk: Node3D = active_chunks[0]
-		if player_z - oldest_chunk.position.z > CHUNK_LENGTH * 1.6 and player_z < 90.0:
-			# Shift oldest chunk forward
-			oldest_chunk.position.z = next_chunk_z
-			next_chunk_z += CHUNK_LENGTH
+		if player_z - oldest_chunk.position.z > CHUNK_LENGTH * 1.5:
+			# Remove oldest chunk and spawn fresh one forward
 			active_chunks.remove_at(0)
-			active_chunks.append(oldest_chunk)
+			oldest_chunk.queue_free()
+			
+			if next_chunk_z < GOAL_Z + CHUNK_LENGTH * 2.0:
+				var new_chunk := _create_chunk(current_chunk_idx, next_chunk_z)
+				add_child(new_chunk)
+				active_chunks.append(new_chunk)
+				next_chunk_z += CHUNK_LENGTH
+				current_chunk_idx += 1
 
 func _build_finish_line() -> void:
-	# Checkered finish line on ground at Z = 100
+	# Checkered finish line on ground at Z = GOAL_Z
 	var checker_mat_black := StandardMaterial3D.new()
 	checker_mat_black.albedo_color = Color(0.1, 0.1, 0.1)
 	
@@ -88,6 +128,15 @@ func _build_finish_line() -> void:
 	crossbar.mesh = bar_mesh
 	crossbar.position = Vector3(0.0, 4.0, GOAL_Z)
 	var banner_mat := StandardMaterial3D.new()
-	banner_mat.albedo_color = Color(0.9, 0.2, 0.2)
+	banner_mat.albedo_color = Color(0.85, 0.2, 0.2)
 	crossbar.material_override = banner_mat
 	add_child(crossbar)
+	
+	# Finish Label
+	var label := Label3D.new()
+	label.text = "🏁 FINISH 🏁"
+	label.position = Vector3(0.0, 4.0, GOAL_Z - 0.26)
+	label.font_size = 48
+	label.outline_size = 8
+	label.modulate = Color(1.0, 0.95, 0.2)
+	add_child(label)

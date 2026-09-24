@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://bqeg6bi2ewlt1"]
+
+[ext_resource type="Script" path="res://scripts/crosswalk_chunk.gd" id="1_cw_chunk"]
+
+[node name="CrosswalkChunk" type="Node3D"]
+script = ExtResource("1_cw_chunk")
