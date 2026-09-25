@@ -1,12 +1,16 @@
 class_name ShopBuilding
 extends Node3D
 
+signal player_entering_shop(shop: ShopBuilding, player: CharacterBody3D)
 signal player_entered_shop(shop: ShopBuilding)
+
+@export var door_sound: AudioStream = null
 
 @onready var door_area: Area3D = $EntranceDoor
 @onready var camera_spot: Marker3D = $CameraTargetSpot
 @onready var player_spot: Marker3D = $PlayerStopSpot
 @onready var swipe_prompt: Label3D = $SwipePrompt
+@onready var door_audio: AudioStreamPlayer3D = get_node_or_null("DoorAudio")
 
 var is_active: bool = true
 var player_in_zone: CharacterBody3D = null
@@ -41,7 +45,14 @@ func enter_shop(player: CharacterBody3D) -> void:
 	_hide_prompt()
 	if player_in_zone == player:
 		player_in_zone = null
+	
+	player_entering_shop.emit(self, player)
 	player_entered_shop.emit(self)
+	
+	if door_audio and door_sound:
+		door_audio.stream = door_sound
+		door_audio.play()
+	
 	InteriorManager.handle_player_entered_shop(self, player)
 
 func _show_prompt() -> void:

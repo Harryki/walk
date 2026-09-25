@@ -10,13 +10,19 @@ signal hp_updated(hp: int)
 
 signal stamina_updated(stamina: float, max_stamina: float, is_exhausted: bool)
 signal slide_cooldown_updated(time_left: float, max_time: float)
+signal interior_entering(shop: Node3D)
 signal interior_entered
-signal interior_exited    
+signal interior_exiting(shop: Node3D)
+signal interior_exited
+signal game_paused(is_paused: bool)
 
 enum GameState {
 	READY,
 	PLAYING,
+	PAUSED,
+	ENTERING_INTERIOR,
 	IN_INTERIOR,
+	EXITING_INTERIOR,
 	GAME_OVER,
 	VICTORY
 }     
@@ -93,6 +99,19 @@ func trigger_game_over(reason: String) -> void:
 		return
 	current_state = GameState.GAME_OVER
 	game_lost.emit(reason, current_distance, run_coins)
+
+func pause_game() -> void:
+	if current_state == GameState.PLAYING:
+		current_state = GameState.PAUSED
+		game_paused.emit(true)
+
+func resume_game() -> void:
+	if current_state == GameState.PAUSED:
+		current_state = GameState.PLAYING
+		game_paused.emit(false)
+
+func is_playing() -> bool:
+	return current_state == GameState.PLAYING
 
 func restart_game() -> void:
 	# Main._ready() will initialize and start game

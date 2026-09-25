@@ -1,7 +1,11 @@
 extends Node
 
+signal shop_entering(shop: Node3D, player: CharacterBody3D)
 signal shop_opened(shop: Node3D)
+signal shop_exiting(shop: Node3D)
 signal shop_closed
+
+@export var pre_transition_delay: float = 0.18
 
 var current_shop: Node3D
 var current_player: CharacterBody3D
@@ -12,6 +16,9 @@ var shop_interior: Node3D = null
 var pre_interior_cam_size: float = 10.5
 var pre_interior_cam_transform: Transform3D = Transform3D.IDENTITY
 var pre_interior_player_pos: Vector3 = Vector3.ZERO
+
+func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
 
 func register_camera(cam: Camera3D) -> void:
 	main_camera = cam
@@ -32,6 +39,23 @@ func handle_player_entered_shop(shop: Node3D, player: CharacterBody3D) -> void:
 	current_shop = shop
 	current_player = player
 	
+	# 1. Immediately pause runner gameplay & freeze player motion
+	GameManager.current_state = GameManager.GameState.ENTERING_INTERIOR
+	
+	if is_instance_valid(player):
+		player.velocity = Vector3.ZERO
+		if player.is_sliding:
+			player.is_sliding = false
+			if player.aura_mesh:
+				player.aura_mesh.visible = false
+		if player.visual_root:
+			player.visual_root.position.y = 0.0
+			player.visual_root.rotation.y = PI / 2.0 # Face towards shop entrance
+	
+	# 2. Emit entering signals BEFORE transition starts (for door sound, UI, etc.)
+	shop_entering.emit(shop, player)
+	GameManager.interior_entering.emit(shop)
+	
 	# Compute screen UV position of player/door for Mario iris center
 	var center_uv := Vector2(0.5, 0.5)
 	if main_camera and is_instance_valid(player):
@@ -43,13 +67,17 @@ func handle_player_entered_shop(shop: Node3D, player: CharacterBody3D) -> void:
 		)
 	
 	if transition_mask and is_instance_valid(transition_mask) and transition_mask.has_method(&"fade_in"):
-		# 1. Close Mario Iris wipe onto player (dramatic 0.85s duration)
+		# Brief pause so the door sound begins / player pause is felt before iris closes
+		if pre_transition_delay > 0.0:
+			await get_tree().create_timer(pre_transition_delay).timeout
+		
+		# 3. Close Mario Iris wipe onto player (dramatic 0.85s duration)
 		await transition_mask.fade_in(center_uv, 0.85)
 		
-		# 2. Setup 3D Interior while screen is dark
+		# 4. Setup 3D Interior while screen is dark
 		_setup_interior_view(shop, player)
 		
-		# 3. Open Mario Iris wipe revealing shop interior
+		# 5. Open Mario Iris wipe revealing shop interior
 		await transition_mask.fade_out(Vector2(0.5, 0.5), 0.8)
 		shop_opened.emit(shop)
 	else:
@@ -93,7 +121,9 @@ func exit_shop() -> void:
 	if GameManager.current_state != GameManager.GameState.IN_INTERIOR:
 		return
 	
-	shop_closed.emit()
+	GameManager.current_state = GameManager.GameState.EXITING_INTERIOR
+	shop_exiting.emit(current_shop)
+	GameManager.interior_exiting.emit(current_shop)
 	
 	if transition_mask and is_instance_valid(transition_mask) and transition_mask.has_method(&"fade_in"):
 		# 1. Close Mario Iris wipe (0.8s)
@@ -104,8 +134,10 @@ func exit_shop() -> void:
 		
 		# 3. Open Mario Iris wipe back to runner game (0.8s)
 		await transition_mask.fade_out(Vector2(0.5, 0.5), 0.8)
+		shop_closed.emit()
 	else:
 		_restore_runner_view()
+		shop_closed.emit()
 
 func _restore_runner_view() -> void:
 	if current_shop and current_shop.has_method(&"close_shop"):

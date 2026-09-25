@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://b2hq47rjc2pfp" path="res://scripts/pedestrian.gd" id="1_ped"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_ped"]
-size = Vector3(0.65, 1, 0.65)
+size = Vector3(0.97499996, 1.5, 0.97499996)
 
 [sub_resource type="BoxMesh" id="BoxMesh_body"]
 size = Vector3(0.5, 0.45, 0.45)
@@ -39,6 +39,7 @@ albedo_color = Color(0.1, 0.1, 0.1, 1)
 [node name="Pedestrian" type="Area3D" unique_id=1319923511 groups=["pedestrians"]]
 collision_layer = 2
 script = ExtResource("1_ped")
+character_scale = 1.5
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=286374472]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)

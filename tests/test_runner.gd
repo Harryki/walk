@@ -157,10 +157,27 @@ func _ready() -> void:
 	assert(player.current_door_target == shop, "Player should register door target")
 	assert(GameManager.current_state == GameManager.GameState.PLAYING, "Player in front of door must NOT enter automatically")
 	
+	# Connect signals to verify pre-transition notifications
+	var received := {
+		"interior_entering": false,
+		"shop_entering": false,
+		"player_entering": false
+	}
+	
+	GameManager.interior_entering.connect(func(_s): received["interior_entering"] = true, CONNECT_ONE_SHOT)
+	InteriorManager.shop_entering.connect(func(_s, _p): received["shop_entering"] = true, CONNECT_ONE_SHOT)
+	shop.player_entering_shop.connect(func(_s, _p): received["player_entering"] = true, CONNECT_ONE_SHOT)
+	
 	# If player does NOT swipe left, they can pass by freely
 	# When player reaches door lane (MIN_LANE) and swipes left:
 	player.current_lane = player.MIN_LANE
+	player.velocity = Vector3(0.0, 0.0, 10.0) # Player was sprinting
 	player.change_lane(-1)
+	
+	assert(received["interior_entering"], "GameManager.interior_entering must be emitted before transition")
+	assert(received["shop_entering"], "InteriorManager.shop_entering must be emitted before transition")
+	assert(received["player_entering"], "ShopBuilding.player_entering_shop must be emitted before transition")
+	assert(player.velocity == Vector3.ZERO, "Player velocity must be zeroed immediately upon entering shop")
 	assert(GameManager.current_state == GameManager.GameState.IN_INTERIOR, "Swiping left in front of door must enter shop")
 	
 	# Exit shop
@@ -283,13 +300,53 @@ func _ready() -> void:
 	car._on_body_entered(player)
 	assert(GameManager.current_state == GameManager.GameState.PLAYING, "Sliding player must evade lethal car collision")
 	
+	print("  -> Multi-Tier Crosswalks, Traffic Lights & Lethal Cars PASSED!")
+	
+	# 7. Test Audio Buses, Street Ambience & Dynamic Footsteps
+	print("[TEST 7] Audio Buses, Street Ambience & Dynamic Footsteps:")
+	assert(AudioServer.get_bus_index("Master") >= 0, "Master audio bus must exist")
+	assert(AudioServer.get_bus_index("Ambience") >= 0, "Ambience audio bus must exist")
+	assert(AudioServer.get_bus_index("PlayerSFX") >= 0, "PlayerSFX audio bus must exist")
+	assert(AudioServer.get_bus_index("SFX") >= 0, "SFX audio bus must exist")
+	
+	# Verify AudioManager and Ambience stream
+	assert(AudioManager != null, "AudioManager autoload must be loaded")
+	assert(AudioManager.ambience_player != null, "Ambience player must be initialized")
+	assert(AudioManager.ambience_player.bus == &"Ambience", "Ambience player must route to Ambience bus")
+	
+	# Verify Player Footstep Audio
+	assert(player.FOOTSTEP_SOUNDS.size() == 3, "Player must have 3 footstep sounds")
+	assert(player.footstep_audio != null, "Player must have footstep_audio initialized")
+	assert(player.footstep_audio.bus == &"PlayerSFX", "Footstep audio must route to PlayerSFX bus")
+	
+	# Test footstep trigger proportional to speed
+	GameManager.current_state = GameManager.GameState.PLAYING
+	player.is_sliding = false
+	player.is_waiting_at_signal = false
+	player.current_speed = 5.0
+	player.hop_time = 0.0
+	# Advance hop_time past PI (half-cycle landing: hop_speed = 5.0 * 2.2 + 5.0 = 16.0; 0.25s * 16.0 = 4.0 > PI)
+	player._update_visual_hop(0.25)
+	assert(player.footstep_audio.playing, "Player footstep audio must play on landing")
+	
+	# Verify Player OOF sound and Pedestrian THUD sound
+	assert(player.OOF_SOUND != null, "Player OOF sound must be loaded")
+	player.play_oof_sound()
+	
+	var ped_scene: PackedScene = load("res://scenes/obstacles/pedestrian.tscn")
+	var test_ped = ped_scene.instantiate()
+	add_child(test_ped)
+	assert(test_ped.THUD_SOUND != null, "Pedestrian THUD sound must be loaded")
+	test_ped.destroy_pedestrian()
+	print("  -> Player OOF (PlayerSFX) and Pedestrian THUD (SFX) PASSED!")
+	print("  -> Audio Buses, Street Ambience & Speed-Proportional Footsteps PASSED!")
+	
 	# Clean up test nodes
 	cw_t1.queue_free()
 	cw_t2.queue_free()
 	cw_t3.queue_free()
 	car.queue_free()
 	player.queue_free()
-	print("  -> Multi-Tier Crosswalks, Traffic Lights & Lethal Cars PASSED!")
 	
 	print("--- ALL VERIFICATION TESTS PASSED SUCCESSFULLY! ---")
 	get_tree().quit()

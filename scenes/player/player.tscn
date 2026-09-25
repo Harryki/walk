@@ -1,9 +1,9 @@
-[gd_scene format=3 uid="uid://bplayer01runner"]
+[gd_scene format=3 uid="uid://drckdk1pb3oan"]
 
-[ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
+[ext_resource type="Script" uid="uid://ciwecrijf2pit" path="res://scripts/player.gd" id="1_player"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_player"]
-size = Vector3(0.6, 1.0, 0.6)
+size = Vector3(0.90000004, 1.5, 0.90000004)
 
 [sub_resource type="BoxMesh" id="BoxMesh_body"]
 size = Vector3(0.5, 0.45, 0.45)
@@ -45,48 +45,53 @@ emission_enabled = true
 emission = Color(0.2, 0.8, 1, 1)
 emission_energy_multiplier = 2.0
 
-[node name="Player" type="CharacterBody3D" groups=["player"]]
+[node name="Player" type="CharacterBody3D" unique_id=756479801 groups=["player"]]
 collision_mask = 3
 script = ExtResource("1_player")
+character_scale = 1.5
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1615793885]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
 shape = SubResource("BoxShape3D_player")
 
-[node name="Visuals" type="Node3D" parent="."]
+[node name="Visuals" type="Node3D" parent="." unique_id=1548126670]
 
-[node name="Body" type="MeshInstance3D" parent="Visuals"]
+[node name="Body" type="MeshInstance3D" parent="Visuals" unique_id=1945037053]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.32, 0)
 mesh = SubResource("BoxMesh_body")
 surface_material_override/0 = SubResource("StandardMaterial3D_body")
 
-[node name="Head" type="MeshInstance3D" parent="Visuals"]
+[node name="Head" type="MeshInstance3D" parent="Visuals" unique_id=1032389113]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.72, 0)
 mesh = SubResource("BoxMesh_head")
 surface_material_override/0 = SubResource("StandardMaterial3D_head")
 
-[node name="Cap" type="MeshInstance3D" parent="Visuals"]
+[node name="Cap" type="MeshInstance3D" parent="Visuals" unique_id=1458157629]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.94, 0)
 mesh = SubResource("BoxMesh_cap")
 surface_material_override/0 = SubResource("StandardMaterial3D_cap")
 
-[node name="CapBill" type="MeshInstance3D" parent="Visuals"]
+[node name="CapBill" type="MeshInstance3D" parent="Visuals" unique_id=1902100223]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0.25)
 mesh = SubResource("BoxMesh_cap_bill")
 surface_material_override/0 = SubResource("StandardMaterial3D_cap")
 
-[node name="EyeL" type="MeshInstance3D" parent="Visuals"]
+[node name="EyeL" type="MeshInstance3D" parent="Visuals" unique_id=809175265]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.11, 0.72, 0.21)
 mesh = SubResource("BoxMesh_eye")
 surface_material_override/0 = SubResource("StandardMaterial3D_eye")
 
-[node name="EyeR" type="MeshInstance3D" parent="Visuals"]
+[node name="EyeR" type="MeshInstance3D" parent="Visuals" unique_id=1994068111]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.11, 0.72, 0.21)
 mesh = SubResource("BoxMesh_eye")
 surface_material_override/0 = SubResource("StandardMaterial3D_eye")
 
-[node name="SlideAura" type="MeshInstance3D" parent="Visuals"]
+[node name="SlideAura" type="MeshInstance3D" parent="Visuals" unique_id=1902631325]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 0)
 visible = false
 mesh = SubResource("BoxMesh_aura")
 surface_material_override/0 = SubResource("StandardMaterial3D_aura")
+
+[node name="FootstepAudio" type="AudioStreamPlayer" parent="." unique_id=1293847291]
+bus = &"PlayerSFX"
+max_polyphony = 3

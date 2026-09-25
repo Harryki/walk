@@ -55,6 +55,9 @@ func _setup_visuals() -> void:
 		body_mesh.material_override = mat
 
 func _physics_process(delta: float) -> void:
+	if GameManager.current_state != GameManager.GameState.PLAYING:
+		return
+	
 	if must_stop and not is_stopped:
 		# Distance to stop line before crosswalk
 		var dist_to_stop: float = (stop_x - global_position.x) if direction > 0.0 else (global_position.x - stop_x)
@@ -98,6 +101,8 @@ func _on_body_entered(body: Node3D) -> void:
 		return
 	
 	# Instant lethal hit!
+	if body.has_method(&"play_oof_sound"):
+		body.play_oof_sound()
 	if GameManager:
 		GameManager.take_damage(999)
 		if GameManager.current_state != GameManager.GameState.GAME_OVER:

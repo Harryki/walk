@@ -21,6 +21,7 @@ var _tween: Tween
 var is_transitioning: bool = false
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	z_index = 1000
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	anchors_preset = Control.PRESET_FULL_RECT
@@ -54,6 +55,7 @@ func fade_in(target_center: Vector2 = Vector2(0.5, 0.5), duration: float = -1.0)
 		_tween.kill()
 	
 	_tween = create_tween().set_trans(zoom_tween_type).set_ease(Tween.EASE_IN)
+	_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	_tween.tween_method(_shader_value_zoom, zoom_open, zoom_closed, duration)
 	_tween.tween_callback(func():
 		is_transitioning = false
@@ -75,6 +77,7 @@ func fade_out(target_center: Vector2 = Vector2(0.5, 0.5), duration: float = -1.0
 		_tween.kill()
 	
 	_tween = create_tween().set_trans(zoom_tween_type).set_ease(Tween.EASE_OUT)
+	_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	_tween.tween_method(_shader_value_zoom, zoom_closed, zoom_open, duration)
 	_tween.tween_callback(func():
 		is_transitioning = false

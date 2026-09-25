@@ -1,3 +1,4 @@
+@tool
 class_name Player
 extends CharacterBody3D
 
@@ -6,6 +7,11 @@ signal lane_changed(new_lane: int)
 const LANES: Array[float] = [2.0, 1.0, 0.0, -1.0, -2.0]
 const MIN_LANE: int = -2
 const MAX_LANE: int = 2
+
+@export_range(0.5, 2.5, 0.05) var character_scale: float = 1.0:
+	set(val):
+		character_scale = val
+		_apply_character_scale()
 
 # Speed & Boost parameters
 var base_speed: float = 1.0
@@ -80,11 +86,27 @@ var wait_label: Label3D = null
 @onready var head_mesh: MeshInstance3D = $Visuals/Head
 @onready var aura_mesh: MeshInstance3D = $Visuals/SlideAura
 @onready var collision_shape: CollisionShape3D = $CollisionShape3D
+@onready var footstep_audio: AudioStreamPlayer = get_node_or_null("FootstepAudio")
+
+# Footstep Audio (Footstep 1, 2, 3)
+const FOOTSTEP_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/footstep1.mp3"),
+	preload("res://assets/audio/sfx/footstep2.mp3"),
+	preload("res://assets/audio/sfx/footstep3.mp3")
+]
+var _last_footstep_idx: int = -1
+
+# Hit / Damage Sound
+const OOF_SOUND: AudioStream = preload("res://assets/audio/sfx/oof.mp3")
 
 # Hopping animation
 var hop_time: float = 0.0
 
 func _ready() -> void:
+	if Engine.is_editor_hint():
+		_apply_character_scale()
+		return
+	
 	base_speed = SaveManager.get_base_speed()
 	max_stamina = SaveManager.get_max_stamina()
 	current_stamina = max_stamina
@@ -106,9 +128,21 @@ func _ready() -> void:
 	wait_label.visible = false
 	add_child(wait_label)
 	
+	_apply_character_scale()
 	_emit_stamina()
 
+func _apply_character_scale() -> void:
+	var v := visual_root if visual_root else (get_node_or_null("Visuals") as Node3D)
+	if v:
+		v.scale = Vector3.ONE * character_scale
+	var col := collision_shape if collision_shape else (get_node_or_null("CollisionShape3D") as CollisionShape3D)
+	if col and col.shape is BoxShape3D:
+		col.shape.size = Vector3(0.6, 1.0, 0.6) * character_scale
+		col.position.y = 0.5 * character_scale
+
 func _process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	if GameManager.current_state != GameManager.GameState.PLAYING:
 		return
 	
@@ -116,6 +150,8 @@ func _process(delta: float) -> void:
 	_update_visual_hop(delta)
 
 func _physics_process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	if GameManager.current_state != GameManager.GameState.PLAYING:
 		return
 	
@@ -186,6 +222,8 @@ func end_crosswalk_wait() -> void:
 		t.tween_callback(func(): if not is_waiting_at_signal: wait_label.visible = false).set_delay(0.4)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if Engine.is_editor_hint():
+		return
 	if GameManager.current_state != GameManager.GameState.PLAYING:
 		return
 	
@@ -426,7 +464,14 @@ func hit_by_obstacle() -> void:
 	
 	is_invincible = true
 	invincibility_timer = INVINCIBILITY_DURATION
+	play_oof_sound()
 	GameManager.take_damage(1)
+
+func play_oof_sound() -> void:
+	if Engine.is_editor_hint():
+		return
+	if AudioManager:
+		AudioManager.play_sfx(OOF_SOUND, &"PlayerSFX", randf_range(0.96, 1.04))
 
 func _handle_invincibility(delta: float) -> void:
 	if not is_invincible:
@@ -448,17 +493,55 @@ func _update_visual_hop(delta: float) -> void:
 		return
 	
 	var hop_speed: float = current_speed * 2.2 + 5.0
+	var prev_hop := hop_time
 	hop_time += delta * hop_speed
-	var hop_height: float = absf(sin(hop_time)) * 0.06
+	var hop_height: float = absf(sin(hop_time)) * 0.08 * character_scale
 	visual_root.position.y = hop_height
 	visual_root.rotation.x = deg_to_rad(5.0)
+	
+	# Play footstep synchronized with ground landing (every PI radians)
+	if int(hop_time / PI) > int(prev_hop / PI):
+		_play_footstep()
+
+func _play_footstep() -> void:
+	if Engine.is_editor_hint():
+		return
+	if is_sliding or is_waiting_at_signal:
+		return
+	if GameManager.current_state != GameManager.GameState.PLAYING:
+		return
+	if FOOTSTEP_SOUNDS.is_empty():
+		return
+	
+	var audio := footstep_audio if footstep_audio else get_node_or_null("FootstepAudio") as AudioStreamPlayer
+	if not audio:
+		audio = AudioStreamPlayer.new()
+		audio.name = "FootstepAudio"
+		audio.bus = &"PlayerSFX"
+		audio.max_polyphony = 3
+		add_child(audio)
+		footstep_audio = audio
+	
+	# Randomly play footstep 1, 2, or 3 avoiding consecutive repeats
+	var idx := randi() % FOOTSTEP_SOUNDS.size()
+	if idx == _last_footstep_idx and FOOTSTEP_SOUNDS.size() > 1:
+		idx = (idx + 1 + randi() % (FOOTSTEP_SOUNDS.size() - 1)) % FOOTSTEP_SOUNDS.size()
+	_last_footstep_idx = idx
+	
+	audio.stream = FOOTSTEP_SOUNDS[idx]
+	# Subtle natural pitch jitter (0.94 ~ 1.06)
+	audio.pitch_scale = randf_range(0.94, 1.06)
+	# Volume dynamically scales with running speed
+	var speed_ratio := clampf((current_speed - base_speed) / (MAX_SPEED - base_speed), 0.0, 1.0)
+	audio.volume_db = lerpf(-4.0, 0.5, speed_ratio)
+	audio.play()
 
 func _punch_visual_scale() -> void:
 	if not visual_root:
 		return
-	visual_root.scale = Vector3(1.15, 0.85, 1.15)
+	visual_root.scale = Vector3(1.15, 0.85, 1.15) * character_scale
 	var t := create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	t.tween_property(visual_root, "scale", Vector3.ONE, 0.15)
+	t.tween_property(visual_root, "scale", Vector3.ONE * character_scale, 0.15)
 
 func _emit_stamina() -> void:
 	GameManager.stamina_updated.emit(current_stamina, max_stamina, is_exhausted)

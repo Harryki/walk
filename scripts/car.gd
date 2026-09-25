@@ -28,4 +28,6 @@ func _ready() -> void:
 		body_mesh.material_override = _car_materials.pick_random()
 
 func _process(delta: float) -> void:
+	if GameManager.current_state != GameManager.GameState.PLAYING:
+		return
 	global_position.z += direction * speed * delta

@@ -80,3 +80,7 @@ transform = Transform3D(-0.872683, 0.351796, -0.338621, 0, 0.693487, 0.720469, 0
 
 [node name="PlayerStopSpot" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.8, 0, 0)
+
+[node name="DoorAudio" type="AudioStreamPlayer3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.06, 1.1, 0)
+bus = &"SFX"
