@@ -10,6 +10,7 @@ signal hp_updated(hp: int)
 
 signal stamina_updated(stamina: float, max_stamina: float, is_exhausted: bool)
 signal slide_cooldown_updated(time_left: float, max_time: float)
+signal traffic_wait_updated(is_waiting: bool, time_left: float, is_go: bool)
 signal interior_entering(shop: Node3D)
 signal interior_entered
 signal interior_exiting(shop: Node3D)

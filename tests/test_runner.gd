@@ -343,12 +343,50 @@ func _ready() -> void:
 	print("  -> Player OOF (PlayerSFX) and Pedestrian THUD (SFX) PASSED!")
 	print("  -> Audio Buses, Street Ambience & Speed-Proportional Footsteps PASSED!")
 	
+	# 8. Test Vibrant Comic Arcade + Neo-Brutalism HUD
+	print("[TEST 8] Vibrant Comic Arcade + Neo-Brutalism HUD:")
+	var hud_scene: PackedScene = load("res://scenes/ui/hud.tscn")
+	var hud = hud_scene.instantiate()
+	add_child(hud)
+	
+	assert(hud.theme != null, "HUD must have Neo-Brutalism theme assigned")
+	assert(hud.btn_boost != null, "HUD must have BtnBoost")
+	assert(hud.btn_slide != null, "HUD must have BtnSlide")
+	assert(hud.traffic_alert_banner != null, "HUD must have TrafficAlertBanner")
+	assert(hud.boost_comic_pop != null, "HUD must have BoostComicPop")
+	
+	# Test traffic wait alert banner integration
+	GameManager.traffic_wait_updated.emit(true, 4.0, false)
+	assert(hud.traffic_alert_banner.visible, "Traffic alert banner must be visible during wait")
+	assert(hud.alert_title.text == "WAIT!", "Alert title must say WAIT!")
+	
+	GameManager.traffic_wait_updated.emit(false, 0.0, true)
+	assert(hud.alert_title.text == "GO!", "Alert title must transition to GO!")
+	
+	# Test HP heart loss
+	GameManager.hp_updated.emit(2)
+	assert(hud.heart_nodes[2].text == "🖤", "3rd heart must become black on damage")
+	
+	# Test stamina exhaustion
+	GameManager.stamina_updated.emit(0.0, 100.0, true)
+	assert(hud.btn_boost.disabled, "Boost button must be disabled when exhausted")
+	GameManager.stamina_updated.emit(100.0, 100.0, false)
+	assert(not hud.btn_boost.disabled, "Boost button must be re-enabled when recovered")
+	
+	# Test Boost Comic Pop
+	hud.show_boost_comic_popup()
+	assert(hud.boost_comic_pop.visible, "Boost comic pop must appear on rapid burst")
+	
+	hud.queue_free()
+	print("  -> Neo-Brutalism Comic HUD & Traffic Alert Banner PASSED!")
+	
 	# Clean up test nodes
 	cw_t1.queue_free()
 	cw_t2.queue_free()
 	cw_t3.queue_free()
 	car.queue_free()
 	player.queue_free()
+	test_ped.queue_free()
 	
 	print("--- ALL VERIFICATION TESTS PASSED SUCCESSFULLY! ---")
 	get_tree().quit()

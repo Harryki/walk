@@ -169,9 +169,10 @@ func _physics_process(delta: float) -> void:
 			velocity.z = 0.0
 			
 			# Update wait label dynamically based on traffic light remaining red duration
+			var remaining := waiting_traffic_light.get_remaining_time()
 			if wait_label:
-				var remaining := waiting_traffic_light.get_remaining_time()
 				wait_label.text = "🛑 대기중 (%d초)" % int(ceilf(remaining))
+			GameManager.traffic_wait_updated.emit(true, remaining, false)
 			
 			move_and_slide()
 			GameManager.update_distance(global_position.z)
@@ -203,16 +204,18 @@ func start_crosswalk_wait(light: TrafficLight) -> void:
 		if aura_mesh:
 			aura_mesh.visible = false
 	
+	var remaining := light.get_remaining_time() if light else 3.0
 	if wait_label:
 		wait_label.visible = true
 		wait_label.modulate = Color(1.0, 0.3, 0.3)
-		var remaining := light.get_remaining_time() if light else 3.0
 		wait_label.text = "🛑 대기중 (%d초)" % int(ceilf(remaining))
+	GameManager.traffic_wait_updated.emit(true, remaining, false)
 
 func end_crosswalk_wait() -> void:
 	is_waiting_at_signal = false
 	waiting_traffic_light = null
 	current_speed = base_speed
+	GameManager.traffic_wait_updated.emit(false, 0.0, true)
 	if wait_label:
 		wait_label.text = "GO! 🟢"
 		wait_label.modulate = Color(0.2, 1.0, 0.4)
