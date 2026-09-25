@@ -17,6 +17,8 @@ func _ready() -> void:
 	SaveManager.base_speed_level = 0
 	SaveManager.slide_unlocked = false
 	
+	assert(ProjectSettings.get_setting("display/window/handheld/orientation") == 1, "Handheld orientation must be integer 1 (SCREEN_PORTRAIT)")
+	
 	# 1. Test SaveManager initial state & upgrade logic
 	print("[TEST 1] SaveManager stat progression:")
 	assert(SaveManager.get_max_stamina() == 100.0, "Initial max stamina should be 100")

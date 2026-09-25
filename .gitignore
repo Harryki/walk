@@ -1,4 +1,36 @@
+# Godot 4 engine files
 .godot/
 *.import
-export/
 *.tmp
+*.translation
+
+# Build & Export outputs
+export/
+out/
+build/
+bin/
+*.ipa
+*.xcarchive
+*.pck
+*.apk
+*.aab
+
+# Xcode / iOS artifacts
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcuserstate
+DerivedData/
+*.dSYM/
+*.dSYM.zip
+
+# Logs
+*.log
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes

@@ -39,6 +39,7 @@ var current_hp: int = MAX_HP
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	DisplayServer.screen_set_orientation(DisplayServer.SCREEN_PORTRAIT)
 
 func start_game() -> void:
 	current_state = GameState.PLAYING
