@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://bmain01runner"]
 
 [ext_resource type="Script" uid="uid://bqull0evw5ydj" path="res://scripts/main.gd" id="1_main"]
-[ext_resource type="PackedScene" path="res://scenes/environment/chunk_manager.tscn" id="2_chunk_mgr"]
+[ext_resource type="PackedScene" uid="uid://cchunkmgr01" path="res://scenes/environment/chunk_manager.tscn" id="2_chunk_mgr"]
 [ext_resource type="PackedScene" uid="uid://drckdk1pb3oan" path="res://scenes/player/player.tscn" id="3_player"]
 [ext_resource type="Script" uid="uid://co5jngbhng31" path="res://scripts/spawner.gd" id="4_spawner"]
 [ext_resource type="PackedScene" uid="uid://ciprwf6lgndec" path="res://scenes/obstacles/pedestrian.tscn" id="5_ped"]
@@ -9,11 +9,11 @@
 [ext_resource type="PackedScene" uid="uid://ecar01scene" path="res://scenes/environment/car.tscn" id="7_car"]
 [ext_resource type="PackedScene" uid="uid://ghud01scene" path="res://scenes/ui/hud.tscn" id="8_hud"]
 [ext_resource type="PackedScene" uid="uid://bvfn4dfgcxt8" path="res://scenes/ui/result_popup.tscn" id="9_result"]
-[ext_resource type="Resource" path="res://resources/spawns/spawn_table_default.tres" id="10_npc_table"]
-[ext_resource type="Resource" path="res://resources/spawns/item_table_default.tres" id="11_item_table"]
+[ext_resource type="Resource" uid="uid://c24eathqhuexw" path="res://resources/spawns/spawn_table_default.tres" id="10_npc_table"]
+[ext_resource type="Resource" uid="uid://o7tohggay5w6" path="res://resources/spawns/item_table_default.tres" id="11_item_table"]
 [ext_resource type="PackedScene" uid="uid://cshoppopup01" path="res://scenes/ui/shop_popup.tscn" id="12_shop_popup"]
 [ext_resource type="PackedScene" uid="uid://btransmask01" path="res://scenes/ui/transition_mask.tscn" id="13_transition"]
-[ext_resource type="PackedScene" uid="uid://cshopinterior01" path="res://scenes/buildings/shop_interior.tscn" id="14_interior"]
+[ext_resource type="PackedScene" uid="uid://b2hti1ntffdme" path="res://scenes/buildings/shop_interior.tscn" id="14_interior"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_main"]
 sky_top_color = Color(0.38, 0.68, 0.95, 1)
@@ -49,10 +49,10 @@ shadow_enabled = true
 [node name="Player" parent="." unique_id=1889903990 instance=ExtResource("3_player")]
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=1698097130]
-transform = Transform3D(-0.872683, 0.351796, -0.338621, 0, 0.693487, 0.720469, 0.488287, 0.628741, -0.605194, -1.4, 10, -1.2)
+transform = Transform3D(-0.8726831, 0.35179573, -0.33862072, 0, 0.69348705, 0.7204691, 0.48828703, 0.6287412, -0.60519445, -3, 10, 2)
 keep_aspect = 0
 projection = 1
-size = 10.5
+size = 15.0
 
 [node name="Spawner" type="Node3D" parent="." unique_id=1001262653]
 script = ExtResource("4_spawner")
@@ -70,7 +70,7 @@ item_spawn_table = ExtResource("11_item_table")
 
 [node name="ResultPopup" parent="UI" unique_id=538761913 instance=ExtResource("9_result")]
 
-[node name="TransitionCanvas" parent="." instance=ExtResource("13_transition")]
+[node name="TransitionCanvas" parent="." unique_id=1270953530 instance=ExtResource("13_transition")]
 
-[node name="ShopInterior" parent="." instance=ExtResource("14_interior")]
+[node name="ShopInterior" parent="." unique_id=353717046 instance=ExtResource("14_interior")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -60, 0)

@@ -4,6 +4,11 @@ extends Area3D
 @export var speed: float = 22.0
 @export var direction: float = 1.0 # 1.0 = left-to-right (+X), -1.0 = right-to-left (-X)
 
+var current_speed: float = 22.0
+var must_stop: bool = false
+var stop_x: float = 0.0
+var is_stopped: bool = false
+
 @onready var visuals: Node3D = $Visuals
 @onready var body_mesh: MeshInstance3D = $Visuals/Body
 
@@ -20,10 +25,17 @@ func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	_setup_visuals()
 
-func setup(p_speed: float, p_direction: float) -> void:
+func setup(p_speed: float, p_direction: float, p_stop_x: float = 0.0) -> void:
 	speed = p_speed
+	current_speed = p_speed
 	direction = p_direction
+	stop_x = p_stop_x
 	_setup_visuals()
+
+func set_signal_stop(stop: bool) -> void:
+	must_stop = stop
+	if not stop:
+		is_stopped = false
 
 func _setup_visuals() -> void:
 	if not is_inside_tree() or not visuals:
@@ -43,7 +55,30 @@ func _setup_visuals() -> void:
 		body_mesh.material_override = mat
 
 func _physics_process(delta: float) -> void:
-	global_position.x += direction * speed * delta
+	if must_stop and not is_stopped:
+		# Distance to stop line before crosswalk
+		var dist_to_stop: float = (stop_x - global_position.x) if direction > 0.0 else (global_position.x - stop_x)
+		
+		# If approaching stop line
+		if dist_to_stop > 0.0:
+			var target_spd := clampf(dist_to_stop * 6.5, 1.5, speed)
+			current_speed = move_toward(current_speed, target_spd, 40.0 * delta)
+			if dist_to_stop <= 0.2:
+				current_speed = 0.0
+				global_position.x = stop_x
+				is_stopped = true
+		elif dist_to_stop > -1.0 and current_speed <= 2.0:
+			current_speed = 0.0
+			global_position.x = stop_x
+			is_stopped = true
+		else:
+			# Car was already past stop line inside intersection, let it clear
+			current_speed = move_toward(current_speed, speed, 25.0 * delta)
+	elif not must_stop:
+		is_stopped = false
+		current_speed = move_toward(current_speed, speed, 30.0 * delta)
+	
+	global_position.x += direction * current_speed * delta
 	
 	# Despawn when far out of view
 	if absf(global_position.x) > 38.0:
@@ -57,6 +92,10 @@ func _on_body_entered(body: Node3D) -> void:
 	var is_invincible: bool = body.get(&"is_invincible") == true or body.get(&"is_sliding") == true
 	if is_invincible:
 		return # Slipped through safely with slide dash!
+	
+	# If car is safely stopped at the red line, it doesn't kill pedestrians/players
+	if is_stopped or current_speed < 2.5:
+		return
 	
 	# Instant lethal hit!
 	if GameManager:

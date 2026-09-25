@@ -50,9 +50,29 @@ var touch_start_pos: Vector2 = Vector2.ZERO
 var touch_start_time: float = 0.0
 var is_touch_active: bool = false
 var has_swiped: bool = false
-const SWIPE_THRESHOLD: float = 30.0 # pixels
+const SWIPE_THRESHOLD: float = 32.0 # pixels
 const TAP_MAX_DURATION: float = 0.35 # seconds for tap vs hold
+var last_swipe_time: float = 0.0
+const SWIPE_CHAIN_COOLDOWN: float = 0.12 # matches lane_tween duration
 var current_door_target: Node3D = null
+
+# Screen-aligned directions
+const SCREEN_RIGHT := Vector2(1.0, 0.0)
+const SCREEN_LEFT := Vector2(-1.0, 0.0)
+const SCREEN_UP := Vector2(0.0, -1.0)
+const SCREEN_DOWN := Vector2(0.0, 1.0)
+
+# Default fallback isometric axes matching the camera projection (approx. 22-degree skew)
+const DEFAULT_ISO_RIGHT := Vector2(0.9275, 0.3739)
+const DEFAULT_ISO_LEFT := Vector2(-0.9275, -0.3739)
+const DEFAULT_ISO_UP := Vector2(0.6134, -0.7898)
+const DEFAULT_ISO_DOWN := Vector2(-0.6134, 0.7898)
+
+# Traffic light / Crosswalk waiting state
+var is_waiting_at_signal: bool = false
+var waiting_traffic_light: TrafficLight = null
+var waiting_stop_z: float = 0.0
+var wait_label: Label3D = null
 
 # Visual nodes
 @onready var visual_root: Node3D = $Visuals
@@ -75,6 +95,17 @@ func _ready() -> void:
 	if aura_mesh:
 		aura_mesh.visible = false
 	
+	# Create wait status label above player head
+	wait_label = Label3D.new()
+	wait_label.text = "🛑 대기중"
+	wait_label.position = Vector3(0.0, 1.8, 0.0)
+	wait_label.font_size = 28
+	wait_label.outline_size = 6
+	wait_label.modulate = Color(1.0, 0.3, 0.3)
+	wait_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	wait_label.visible = false
+	add_child(wait_label)
+	
 	_emit_stamina()
 
 func _process(delta: float) -> void:
@@ -92,6 +123,24 @@ func _physics_process(delta: float) -> void:
 	_handle_speed_decay(delta)
 	_handle_slide_timers(delta)
 	
+	# Handle Crosswalk Red Light Waiting
+	if is_waiting_at_signal:
+		# When traffic light turns green or warning, immediately unblock all waiting characters
+		if waiting_traffic_light == null or waiting_traffic_light.is_safe_to_cross():
+			end_crosswalk_wait()
+		else:
+			global_position.z = waiting_stop_z
+			velocity.z = 0.0
+			
+			# Update wait label dynamically based on traffic light remaining red duration
+			if wait_label:
+				var remaining := waiting_traffic_light.get_remaining_time()
+				wait_label.text = "🛑 대기중 (%d초)" % int(ceilf(remaining))
+			
+			move_and_slide()
+			GameManager.update_distance(global_position.z)
+			return
+	
 	# Forward velocity (physics-based slide bonus ensures clean collision and zero tunneling)
 	var forward_speed := current_speed
 	if is_sliding:
@@ -104,6 +153,37 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	
 	GameManager.update_distance(global_position.z)
+
+func start_crosswalk_wait(light: TrafficLight) -> void:
+	if is_waiting_at_signal:
+		return
+	is_waiting_at_signal = true
+	waiting_traffic_light = light
+	waiting_stop_z = global_position.z # Pause exactly where player was standing
+	velocity.z = 0.0
+	
+	if is_sliding:
+		is_sliding = false
+		if aura_mesh:
+			aura_mesh.visible = false
+	
+	if wait_label:
+		wait_label.visible = true
+		wait_label.modulate = Color(1.0, 0.3, 0.3)
+		var remaining := light.get_remaining_time() if light else 3.0
+		wait_label.text = "🛑 대기중 (%d초)" % int(ceilf(remaining))
+
+func end_crosswalk_wait() -> void:
+	is_waiting_at_signal = false
+	waiting_traffic_light = null
+	current_speed = base_speed
+	if wait_label:
+		wait_label.text = "GO! 🟢"
+		wait_label.modulate = Color(0.2, 1.0, 0.4)
+		var t := create_tween()
+		t.tween_property(wait_label, "scale", Vector3(1.3, 1.3, 1.3), 0.15)
+		t.tween_property(wait_label, "scale", Vector3.ONE, 0.15)
+		t.tween_callback(func(): if not is_waiting_at_signal: wait_label.visible = false).set_delay(0.4)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if GameManager.current_state != GameManager.GameState.PLAYING:
@@ -160,26 +240,75 @@ func _process_pointer_touch(pos: Vector2, pressed: bool) -> void:
 					try_tap_boost()
 
 func _process_pointer_drag(pos: Vector2) -> void:
-	if not is_touch_active or has_swiped:
+	if not is_touch_active:
 		return
 	
+	var current_time := Time.get_ticks_msec() / 1000.0
 	var drag_vec: Vector2 = pos - touch_start_pos
+	
 	if drag_vec.length() >= SWIPE_THRESHOLD:
-		has_swiped = true
-		_execute_swipe_gesture(drag_vec)
+		if not has_swiped:
+			has_swiped = true
+			last_swipe_time = current_time
+			touch_start_pos = pos
+			_execute_swipe_gesture(drag_vec)
+		elif current_time - last_swipe_time >= SWIPE_CHAIN_COOLDOWN:
+			# Allows smooth chained swipes without having to lift finger
+			last_swipe_time = current_time
+			touch_start_pos = pos
+			_execute_swipe_gesture(drag_vec)
+
+func _get_projected_axes() -> Dictionary:
+	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
+	if cam:
+		var p0 := cam.unproject_position(global_position)
+		var p_left := cam.unproject_position(global_position + Vector3(1.0, 0.0, 0.0))
+		var p_fwd := cam.unproject_position(global_position + Vector3(0.0, 0.0, 1.0))
+		var iso_l := (p_left - p0).normalized()
+		var iso_u := (p_fwd - p0).normalized()
+		return {
+			"right": -iso_l,
+			"left": iso_l,
+			"up": iso_u,
+			"down": -iso_u
+		}
+	return {
+		"right": DEFAULT_ISO_RIGHT,
+		"left": DEFAULT_ISO_LEFT,
+		"up": DEFAULT_ISO_UP,
+		"down": DEFAULT_ISO_DOWN
+	}
 
 func _execute_swipe_gesture(vec: Vector2) -> void:
-	if absf(vec.x) > absf(vec.y):
-		if vec.x < -SWIPE_THRESHOLD:
-			change_lane(-1)
-		elif vec.x > SWIPE_THRESHOLD:
-			change_lane(1)
-	else:
-		if vec.y < -SWIPE_THRESHOLD:
-			try_slide()
+	if vec.length_squared() < 0.001:
+		return
+	
+	var dir := vec.normalized()
+	var iso_axes := _get_projected_axes()
+	
+	# Score against both screen-aligned and isometric axes:
+	# Crossy Road-style dual basis matching ensures intuitive controls whether swiping
+	# flat across the screen or diagonally along the isometric road perspective.
+	var score_right: float = maxf(dir.dot(SCREEN_RIGHT), dir.dot(iso_axes["right"]))
+	var score_left: float = maxf(dir.dot(SCREEN_LEFT), dir.dot(iso_axes["left"]))
+	var score_up: float = maxf(dir.dot(SCREEN_UP), dir.dot(iso_axes["up"]))
+	var score_down: float = maxf(dir.dot(SCREEN_DOWN), dir.dot(iso_axes["down"]))
+	
+	var max_score := maxf(maxf(score_right, score_left), maxf(score_up, score_down))
+	
+	if max_score == score_left:
+		change_lane(-1)
+	elif max_score == score_right:
+		change_lane(1)
+	elif max_score == score_up:
+		try_slide()
+	elif max_score == score_down:
+		# Downward swipe provides gentle deceleration if running above base speed
+		if current_speed > base_speed:
+			current_speed = maxf(current_speed - 2.0, base_speed)
 
 func try_tap_boost() -> void:
-	if is_exhausted:
+	if is_exhausted or is_waiting_at_signal:
 		return
 	
 	if current_stamina < TAP_STAMINA_COST:
@@ -225,7 +354,7 @@ func _handle_speed_decay(delta: float) -> void:
 		current_speed = move_toward(current_speed, base_speed, SPEED_DECAY_RATE * delta)
 
 func try_slide() -> void:
-	if not SaveManager.is_slide_unlocked():
+	if not SaveManager.is_slide_unlocked() or is_waiting_at_signal:
 		return
 	if is_sliding or slide_cooldown_timer > 0.0:
 		return
@@ -313,7 +442,9 @@ func _handle_invincibility(delta: float) -> void:
 			visual_root.visible = true
 
 func _update_visual_hop(delta: float) -> void:
-	if not visual_root or is_sliding:
+	if not visual_root or is_sliding or is_waiting_at_signal:
+		if is_waiting_at_signal and visual_root:
+			visual_root.position.y = 0.0
 		return
 	
 	var hop_speed: float = current_speed * 2.2 + 5.0

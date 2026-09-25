@@ -7,12 +7,17 @@ const CROSS_CAR_SCENE: PackedScene = preload("res://scenes/environment/cross_car
 const TRAFFIC_LIGHT_SCENE: PackedScene = preload("res://scenes/environment/traffic_light.tscn")
 
 var traffic_light: TrafficLight = null
+var exit_traffic_light: TrafficLight = null
+var entry_zone: Area3D = null
+var exit_zone: Area3D = null
 var cross_z_start: float = 10.0
 var cross_z_end: float = 15.0
 var cross_lanes: Array[Dictionary] = [] # [{z: float, dir: float, timer: float, interval: float, speed: float}]
+var active_cross_cars: Array[CrossCar] = []
 
 var _mat_zebra: StandardMaterial3D
 var _mat_stop_line: StandardMaterial3D
+var _mat_ped_stop_line: StandardMaterial3D
 var _mat_cross_asphalt: StandardMaterial3D
 
 func _init() -> void:
@@ -29,6 +34,10 @@ func _init_crosswalk_materials() -> void:
 	
 	_mat_stop_line = StandardMaterial3D.new()
 	_mat_stop_line.albedo_color = Color(0.95, 0.95, 0.95)
+	
+	_mat_ped_stop_line = StandardMaterial3D.new()
+	_mat_ped_stop_line.albedo_color = Color(0.95, 0.85, 0.15) # Safety yellow for pedestrian waiting line
+	_mat_ped_stop_line.roughness = 0.6
 	
 	_mat_cross_asphalt = StandardMaterial3D.new()
 	_mat_cross_asphalt.albedo_color = Color(0.18, 0.19, 0.22)
@@ -112,8 +121,16 @@ func _configure_tier() -> void:
 func _build_crosswalk_chunk() -> void:
 	_build_segmented_ground()
 	_build_crosswalk_zebra()
+	_build_pedestrian_stop_lines()
 	_build_traffic_light()
+	_build_detection_zones()
 	_build_corner_buildings()
+	_spawn_initial_waiting_cars()
+
+func _spawn_initial_waiting_cars() -> void:
+	# Spawn cars waiting at the stop lines while traffic light is green
+	for lane in cross_lanes:
+		_spawn_cross_car(lane, true)
 
 func _build_segmented_ground() -> void:
 	# 1. Entry Sidewalk (Z: 0.0 to cross_z_start)
@@ -188,11 +205,69 @@ func _build_crosswalk_zebra() -> void:
 		stop_line.material_override = _mat_stop_line
 		add_child(stop_line)
 
+func _build_pedestrian_stop_lines() -> void:
+	# Entry pedestrian stop line (Z: cross_z_start - 0.25)
+	var entry_line := MeshInstance3D.new()
+	var line_mesh_entry := BoxMesh.new()
+	line_mesh_entry.size = Vector3(5.0, 0.03, 0.35)
+	entry_line.mesh = line_mesh_entry
+	entry_line.position = Vector3(0.0, -0.004, cross_z_start - 0.25)
+	entry_line.material_override = _mat_ped_stop_line
+	add_child(entry_line)
+	
+	# Exit pedestrian stop line (Z: cross_z_end + 0.25)
+	var exit_line := MeshInstance3D.new()
+	var line_mesh_exit := BoxMesh.new()
+	line_mesh_exit.size = Vector3(5.0, 0.03, 0.35)
+	exit_line.mesh = line_mesh_exit
+	exit_line.position = Vector3(0.0, -0.004, cross_z_end + 0.25)
+	exit_line.material_override = _mat_ped_stop_line
+	add_child(exit_line)
+
 func _build_traffic_light() -> void:
 	traffic_light = TRAFFIC_LIGHT_SCENE.instantiate() as TrafficLight
-	# Place traffic light pole at corner entry of crosswalk
+	# Place primary traffic light pole at corner entry of crosswalk
 	traffic_light.position = Vector3(-2.8, 0.0, cross_z_start - 0.4)
 	add_child(traffic_light)
+	
+	# Place opposing traffic light pole on opposite sidewalk facing oncoming pedestrians
+	exit_traffic_light = TRAFFIC_LIGHT_SCENE.instantiate() as TrafficLight
+	exit_traffic_light.position = Vector3(2.8, 0.0, cross_z_end + 0.4)
+	exit_traffic_light.rotation.y = PI
+	add_child(exit_traffic_light)
+	
+	# Synchronize state changes to exit light
+	traffic_light.state_changed.connect(func(new_state: int):
+		if is_instance_valid(exit_traffic_light):
+			exit_traffic_light._set_state(new_state as TrafficLight.LightState)
+	)
+
+func _build_detection_zones() -> void:
+	# 1. Entry Stop Zone (Player advancing in +Z towards crosswalk)
+	entry_zone = Area3D.new()
+	entry_zone.name = "EntryStopZone"
+	entry_zone.position = Vector3(0.0, 0.5, cross_z_start - 0.6)
+	var entry_shape := CollisionShape3D.new()
+	var box1 := BoxShape3D.new()
+	box1.size = Vector3(5.5, 2.5, 1.2)
+	entry_shape.shape = box1
+	entry_zone.add_child(entry_shape)
+	entry_zone.monitoring = true
+	entry_zone.monitorable = false
+	add_child(entry_zone)
+	
+	# 2. Exit Stop Zone (Pedestrians advancing in -Z towards crosswalk)
+	exit_zone = Area3D.new()
+	exit_zone.name = "ExitStopZone"
+	exit_zone.position = Vector3(0.0, 0.5, cross_z_end + 0.6)
+	var exit_shape := CollisionShape3D.new()
+	var box2 := BoxShape3D.new()
+	box2.size = Vector3(5.5, 2.5, 1.2)
+	exit_shape.shape = box2
+	exit_zone.add_child(exit_shape)
+	exit_zone.monitoring = true
+	exit_zone.monitorable = false
+	add_child(exit_zone)
 
 func _build_corner_buildings() -> void:
 	# Place corner buildings before intersection (Z: 0 to cross_z_start - 0.8)
@@ -224,22 +299,83 @@ func _physics_process(delta: float) -> void:
 	if not traffic_light:
 		return
 	
-	# Cross-traffic cars only rush when traffic light is RED (Stop for pedestrians)
 	var is_red: bool = traffic_light.is_red()
 	
+	# Update existing cars to obey current traffic signal
+	var valid_cars: Array[CrossCar] = []
+	for car in active_cross_cars:
+		if is_instance_valid(car):
+			car.set_signal_stop(!is_red) # During pedestrian green/warning, cars must stop before crosswalk!
+			valid_cars.append(car)
+	active_cross_cars = valid_cars
+	
+	# Cross-traffic cars rush when traffic light is RED (Pedestrian Red = Road Green)
 	for lane in cross_lanes:
 		if is_red:
 			lane["timer"] -= delta
 			if lane["timer"] <= 0.0:
-				_spawn_cross_car(lane)
+				_spawn_cross_car(lane, false)
 				lane["timer"] = randf_range(lane["min_interval"], lane["max_interval"])
 		else:
-			# Reset timers so cars are ready when light turns red
-			lane["timer"] = randf_range(0.2, 0.6)
+			# In green/warning, reset timers so cars rush out as soon as light turns red
+			lane["timer"] = randf_range(0.2, 0.5)
+			
+			# Ensure each lane has a car waiting at the stop line
+			var has_waiting_car := false
+			for car in active_cross_cars:
+				if is_instance_valid(car) and absf(car.position.z - lane["z"]) < 0.5:
+					has_waiting_car = true
+					break
+			if not has_waiting_car:
+				_spawn_cross_car(lane, true)
+	
+	# Stop player and pedestrians at both crosswalk entry points when RED
+	_process_signal_stops(is_red)
 
-func _spawn_cross_car(lane: Dictionary) -> void:
+func _process_signal_stops(is_red: bool) -> void:
+	if not is_red:
+		return
+	
+	# 1. Entry zone check: ONLY for Player advancing towards crosswalk (+Z direction)
+	# If player has already stepped into the crosswalk or crossed it (rel_z >= cross_z_start - 0.15), DO NOT STOP!
+	var player_node := get_tree().get_first_node_in_group(&"player") as Player
+	if not player_node:
+		var p_cand := get_viewport().get_node_or_null("Main/Player")
+		if p_cand is Player:
+			player_node = p_cand
+	
+	if player_node:
+		var rel_player_z := player_node.global_position.z - global_position.z
+		# Only stop if player is strictly BEFORE the crosswalk entry line
+		if rel_player_z >= cross_z_start - 1.2 and rel_player_z < cross_z_start - 0.15:
+			player_node.start_crosswalk_wait(traffic_light)
+	
+	# 2. Exit zone check: ONLY for Pedestrians walking towards crosswalk (-Z direction)
+	# If pedestrians have already stepped into the crosswalk or crossed it (rel_z <= cross_z_end + 0.15), DO NOT STOP!
+	if exit_zone:
+		for area in exit_zone.get_overlapping_areas():
+			if area is Pedestrian:
+				var rel_ped_z := area.global_position.z - global_position.z
+				# Only stop if pedestrian is strictly BEFORE the crosswalk entry line
+				if rel_ped_z > cross_z_end + 0.15 and rel_ped_z <= cross_z_end + 1.2:
+					area.start_waiting(traffic_light)
+
+func _spawn_cross_car(lane: Dictionary, at_stop_line: bool = false) -> CrossCar:
 	var car := CROSS_CAR_SCENE.instantiate() as CrossCar
-	var start_x: float = -32.0 if lane["dir"] > 0.0 else 32.0
+	var dir: float = lane["dir"]
+	var stop_x: float = -4.6 if dir > 0.0 else 4.6
+	var start_x: float = stop_x if at_stop_line else (-32.0 if dir > 0.0 else 32.0)
+	
 	car.position = Vector3(start_x, 0.0, lane["z"])
 	add_child(car)
-	car.setup(lane["speed"], lane["dir"])
+	car.setup(lane["speed"], dir, stop_x)
+	
+	var is_red: bool = traffic_light.is_red() if traffic_light else false
+	car.set_signal_stop(!is_red)
+	
+	if at_stop_line:
+		car.is_stopped = true
+		car.current_speed = 0.0
+	
+	active_cross_cars.append(car)
+	return car

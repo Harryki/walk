@@ -4,10 +4,24 @@ extends Area3D
 const SPEED: float = 3.0
 var current_speed: float = SPEED
 var is_dead: bool = false
+var is_waiting: bool = false
+var waiting_traffic_light: TrafficLight = null
+var waiting_stop_z: float = 0.0
 var bob_time: float = 0.0
 
 @onready var visual_root: Node3D = $Visuals
 @onready var body_mesh: MeshInstance3D = $Visuals/Body
+
+func start_waiting(light: TrafficLight) -> void:
+	if is_dead or is_waiting:
+		return
+	is_waiting = true
+	waiting_traffic_light = light
+	waiting_stop_z = global_position.z # Pause exactly where pedestrian was walking
+
+func stop_waiting() -> void:
+	is_waiting = false
+	waiting_traffic_light = null
 
 func apply_data(data: Resource) -> void:
 	if not data:
@@ -52,6 +66,14 @@ func _apply_cached_material() -> void:
 func _physics_process(delta: float) -> void:
 	if is_dead:
 		return
+	
+	# Stop at crosswalk when traffic light is RED
+	if is_waiting:
+		if waiting_traffic_light and waiting_traffic_light.is_safe_to_cross():
+			stop_waiting()
+		else:
+			global_position.z = waiting_stop_z
+			return
 	
 	# Synchronized with physics tick
 	global_position.z -= current_speed * delta

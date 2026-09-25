@@ -11,7 +11,7 @@ enum LightState {
 
 @export var green_duration: float = 4.5
 @export var warning_duration: float = 1.8
-@export var red_duration: float = 4.0
+@export var red_duration: float = 3.0
 
 var current_state: LightState = LightState.GREEN
 var state_timer: float = 0.0
@@ -117,3 +117,6 @@ func is_safe_to_cross() -> bool:
 
 func is_red() -> bool:
 	return current_state == LightState.RED
+
+func get_remaining_time() -> float:
+	return maxf(state_timer, 0.0)
