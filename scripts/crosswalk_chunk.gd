@@ -3,7 +3,7 @@ extends BaseChunk
 
 @export var tier: int = 1 # 1: 1-lane, 2: 2-lane, 3: 4-lane
 
-const CROSS_CAR_SCENE: PackedScene = preload("res://scenes/environment/cross_car.tscn")
+const CROSS_CAR_SCENE: PackedScene = preload("res://scenes/environment/car.tscn")
 const TRAFFIC_LIGHT_SCENE: PackedScene = preload("res://scenes/environment/traffic_light.tscn")
 
 var traffic_light: TrafficLight = null
@@ -13,7 +13,7 @@ var exit_zone: Area3D = null
 var cross_z_start: float = 10.0
 var cross_z_end: float = 15.0
 var cross_lanes: Array[Dictionary] = [] # [{z: float, dir: float, timer: float, interval: float, speed: float}]
-var active_cross_cars: Array[CrossCar] = []
+var active_cross_cars: Array[Car] = []
 
 func _ready() -> void:
 	_ensure_references()
@@ -233,7 +233,7 @@ func _physics_process(delta: float) -> void:
 	var is_red: bool = traffic_light.is_red()
 	
 	# Update existing cars to obey current traffic signal
-	var valid_cars: Array[CrossCar] = []
+	var valid_cars: Array[Car] = []
 	for car in active_cross_cars:
 		if is_instance_valid(car):
 			car.set_signal_stop(!is_red) # During pedestrian green/warning, cars must stop before crosswalk!
@@ -281,18 +281,19 @@ func _process_signal_stops(is_red: bool) -> void:
 		if rel_player_z >= cross_z_start - 1.2 and rel_player_z < cross_z_start - 0.15:
 			player_node.start_crosswalk_wait(traffic_light)
 	
-	# 2. Exit zone check: ONLY for Pedestrians walking towards crosswalk (-Z direction)
-	# If pedestrians have already stepped into the crosswalk or crossed it (rel_z <= cross_z_end + 0.15), DO NOT STOP!
-	if exit_zone:
-		for area in exit_zone.get_overlapping_areas():
-			if area is Pedestrian:
-				var rel_ped_z := area.global_position.z - global_position.z
-				# Only stop if pedestrian is strictly BEFORE the crosswalk entry line
-				if rel_ped_z > cross_z_end + 0.15 and rel_ped_z <= cross_z_end + 1.2:
-					area.start_waiting(traffic_light)
+	# 2. Exit zone check: for Pedestrians walking towards crosswalk (-Z direction)
+	# If pedestrian is approaching crosswalk stop line while RED, stop them before entering the road!
+	for node in get_tree().get_nodes_in_group(&"pedestrians"):
+		var ped := node as Pedestrian
+		if not is_instance_valid(ped) or ped.is_dead:
+			continue
+		var rel_ped_z := ped.global_position.z - global_position.z
+		# Only stop if pedestrian is approaching from the exit sidewalk (+Z side of cross_z_end)
+		if rel_ped_z > cross_z_end + 0.15 and rel_ped_z <= cross_z_end + 1.2:
+			ped.start_waiting(traffic_light)
 
-func _spawn_cross_car(lane: Dictionary, at_stop_line: bool = false) -> CrossCar:
-	var car := CROSS_CAR_SCENE.instantiate() as CrossCar
+func _spawn_cross_car(lane: Dictionary, at_stop_line: bool = false) -> Car:
+	var car := CROSS_CAR_SCENE.instantiate() as Car
 	var dir: float = lane["dir"]
 	var stop_x: float = -4.6 if dir > 0.0 else 4.6
 	var start_x: float = stop_x if at_stop_line else (-32.0 if dir > 0.0 else 32.0)

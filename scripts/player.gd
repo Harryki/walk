@@ -74,16 +74,29 @@ const DEFAULT_ISO_LEFT := Vector2(-0.9275, -0.3739)
 const DEFAULT_ISO_UP := Vector2(0.6134, -0.7898)
 const DEFAULT_ISO_DOWN := Vector2(-0.6134, 0.7898)
 
-# Traffic light / Crosswalk waiting state
 var is_waiting_at_signal: bool = false
 var waiting_traffic_light: TrafficLight = null
 var waiting_stop_z: float = 0.0
 var wait_label: Label3D = null
 
+# Death & Ragdoll state
+var is_dead: bool = false
+static var _ragdoll_nodes: Array[Node3D] = []
+var active_ragdoll_body: RigidBody3D = null
+
+func get_focus_position() -> Vector3:
+	if is_dead and is_instance_valid(active_ragdoll_body):
+		return active_ragdoll_body.global_position
+	return global_position
+
 # Visual nodes
 @onready var visual_root: Node3D = $Visuals
 @onready var body_mesh: MeshInstance3D = $Visuals/Body
 @onready var head_mesh: MeshInstance3D = $Visuals/Head
+@onready var cap_mesh: MeshInstance3D = get_node_or_null("Visuals/Cap")
+@onready var cap_bill_mesh: MeshInstance3D = get_node_or_null("Visuals/CapBill")
+@onready var eye_l_mesh: MeshInstance3D = get_node_or_null("Visuals/EyeL")
+@onready var eye_r_mesh: MeshInstance3D = get_node_or_null("Visuals/EyeR")
 @onready var aura_mesh: MeshInstance3D = $Visuals/SlideAura
 @onready var collision_shape: CollisionShape3D = $CollisionShape3D
 @onready var footstep_audio: AudioStreamPlayer = get_node_or_null("FootstepAudio")
@@ -130,6 +143,9 @@ func _ready() -> void:
 	
 	_apply_character_scale()
 	_emit_stamina()
+	
+	GameManager.game_started.connect(reset_state)
+	GameManager.game_lost.connect(_on_game_lost)
 
 func _apply_character_scale() -> void:
 	var v := visual_root if visual_root else (get_node_or_null("Visuals") as Node3D)
@@ -374,6 +390,12 @@ func _trigger_exhaustion() -> void:
 	current_speed = base_speed
 	_emit_stamina()
 
+func restore_full_stamina() -> void:
+	current_stamina = max_stamina
+	is_exhausted = false
+	exhausted_timer = 0.0
+	_emit_stamina()
+
 func _handle_stamina(delta: float) -> void:
 	if is_exhausted:
 		exhausted_timer -= delta
@@ -548,3 +570,217 @@ func _punch_visual_scale() -> void:
 
 func _emit_stamina() -> void:
 	GameManager.stamina_updated.emit(current_stamina, max_stamina, is_exhausted)
+
+func reset_state() -> void:
+	is_dead = false
+	active_ragdoll_body = null
+	current_speed = base_speed
+	set_physics_process(true)
+	set_process_input(true)
+	if visual_root:
+		visual_root.visible = true
+	if collision_shape:
+		collision_shape.set_deferred(&"disabled", false)
+	Engine.time_scale = 1.0
+	for piece in _ragdoll_nodes:
+		if is_instance_valid(piece):
+			piece.queue_free()
+	_ragdoll_nodes.clear()
+	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
+	if cam and cam.projection == Camera3D.PROJECTION_ORTHOGONAL:
+		cam.size = 15.0
+
+func _on_game_lost(reason: String, _dist: float, _coins: int) -> void:
+	if not is_inside_tree() or is_dead:
+		return
+	die(reason, Vector3(0.0, 0.15, 1.0))
+
+func die(reason: String = "사망!", hit_direction: Vector3 = Vector3.ZERO) -> void:
+	if not is_inside_tree() or is_dead:
+		return
+	is_dead = true
+	
+	current_speed = 0.0
+	velocity = Vector3.ZERO
+	set_physics_process(false)
+	set_process_input(false)
+	if collision_shape:
+		collision_shape.set_deferred(&"disabled", true)
+	
+	play_oof_sound()
+	
+	# Heavy impact sound
+	if AudioManager:
+		AudioManager.play_sfx(preload("res://assets/audio/sfx/thud.mp3"), &"PlayerSFX", 0.65, 3.0)
+	
+	# 1. Slow Motion
+	Engine.time_scale = 0.18
+	
+	# 2. Camera zoom
+	_zoom_camera_on_death()
+	
+	# 3. Spawn unified body ragdoll & flying cap
+	_spawn_ragdoll_blocks(hit_direction)
+	
+	if visual_root:
+		visual_root.visible = false
+	
+	if GameManager and GameManager.current_state == GameManager.GameState.PLAYING:
+		GameManager.trigger_game_over(reason)
+
+func _zoom_camera_on_death() -> void:
+	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
+	if cam and cam.projection == Camera3D.PROJECTION_ORTHOGONAL:
+		var cam_tw := create_tween()
+		cam_tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+		cam_tw.tween_property(cam, "size", 10.5, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+func _spawn_ragdoll_blocks(hit_direction: Vector3) -> void:
+	if not is_inside_tree():
+		return
+	var p_parent = get_parent()
+	if not p_parent or not p_parent.is_inside_tree():
+		return
+	
+	# Invisible floor slab under player to ensure ragdoll collides and slides on road/sidewalk
+	var floor_body := StaticBody3D.new()
+	var floor_col := CollisionShape3D.new()
+	var floor_box := BoxShape3D.new()
+	floor_box.size = Vector3(60.0, 1.0, 60.0)
+	floor_col.shape = floor_box
+	floor_body.add_child(floor_col)
+	p_parent.add_child(floor_body)
+	floor_body.global_position = Vector3(0.0, -0.5, global_position.z)
+	_ragdoll_nodes.append(floor_body)
+	
+	var base_dir := hit_direction.normalized() if hit_direction.length_squared() > 0.01 else Vector3(0.0, 0.15, 1.0).normalized()
+	
+	# Realistic asphalt physics material (good friction for sliding, moderate bounce)
+	var body_phys_mat := PhysicsMaterial.new()
+	body_phys_mat.friction = 0.65
+	body_phys_mat.bounce = 0.22
+	
+	# 1. Main Unified Ragdoll Body (Body + Head + Eyes)
+	# Using CapsuleShape3D allows the body to roll, tumble, and slide smoothly on asphalt without snagging on sharp corners
+	var rb_player := RigidBody3D.new()
+	rb_player.name = "Ragdoll_Player"
+	rb_player.physics_material_override = body_phys_mat
+	rb_player.collision_layer = 0
+	rb_player.collision_mask = 1
+	rb_player.mass = 12.0
+	rb_player.linear_damp = 0.8
+	rb_player.angular_damp = 1.4
+	
+	var col := CollisionShape3D.new()
+	var capsule := CapsuleShape3D.new()
+	capsule.radius = 0.32 * character_scale
+	capsule.height = 1.25 * character_scale
+	col.shape = capsule
+	col.position = Vector3.ZERO
+	rb_player.add_child(col)
+	
+	# Duplicate visual meshes into the ragdoll body (excluding cap and slide aura)
+	if visual_root:
+		var dup_visuals := visual_root.duplicate() as Node3D
+		dup_visuals.visible = true
+		var cap_in_dup = dup_visuals.get_node_or_null("Cap")
+		if cap_in_dup:
+			cap_in_dup.queue_free()
+		var bill_in_dup = dup_visuals.get_node_or_null("CapBill")
+		if bill_in_dup:
+			bill_in_dup.queue_free()
+		var aura_in_dup = dup_visuals.get_node_or_null("SlideAura")
+		if aura_in_dup:
+			aura_in_dup.queue_free()
+		
+		# Center visuals around the capsule's center of mass (mid-torso)
+		dup_visuals.position = Vector3(0.0, -0.6 * character_scale, 0.0)
+		rb_player.add_child(dup_visuals)
+	
+	# Add to tree first, then set global transform to avoid Godot warnings
+	p_parent.add_child(rb_player)
+	var com_offset := Vector3(0.0, 0.6 * character_scale, 0.0)
+	rb_player.global_position = global_position + com_offset
+	rb_player.global_rotation = visual_root.global_rotation if visual_root else rotation
+	active_ragdoll_body = rb_player
+	_ragdoll_nodes.append(rb_player)
+	
+	# Natural impulse and rotational tumble
+	var is_car_hit := hit_direction.length_squared() > 0.01 and absf(hit_direction.x) > 0.25
+	var impulse_dir: Vector3
+	var impulse_speed: float
+	var torque: Vector3
+	
+	if is_car_hit:
+		# Car hit: Thrown sideways with vehicle velocity, lifted off ground, tumbling
+		impulse_dir = Vector3(
+			signf(hit_direction.x) * randf_range(1.2, 1.4),
+			randf_range(0.35, 0.52),
+			hit_direction.z + randf_range(-0.15, 0.15)
+		).normalized()
+		impulse_speed = randf_range(6.5, 8.5)
+		
+		# Tumble around axis perpendicular to movement (natural cartwheel / roll)
+		var rot_axis := Vector3.UP.cross(impulse_dir).normalized()
+		torque = (rot_axis * randf_range(12.0, 18.0) + Vector3(randf_range(-3.0, 3.0), randf_range(-3.0, 3.0), randf_range(-3.0, 3.0))) * (rb_player.mass * 0.12)
+	else:
+		# Collapse / timeout / fatigue: stumbling forward and collapsing/tumbling forward to the ground
+		impulse_dir = Vector3(
+			randf_range(-0.1, 0.1),
+			randf_range(0.08, 0.18),
+			randf_range(0.9, 1.1)
+		).normalized()
+		impulse_speed = randf_range(3.0, 4.5)
+		
+		# Pitch forward (+X torque): head falls forward (+Z) and faceplants onto asphalt
+		torque = Vector3(
+			randf_range(6.5, 9.5),
+			randf_range(-1.0, 1.0),
+			randf_range(-1.5, 1.5)
+		) * (rb_player.mass * 0.14)
+	
+	rb_player.apply_central_impulse(impulse_dir * (impulse_speed * rb_player.mass))
+	rb_player.apply_torque_impulse(torque)
+	
+	# 2. Cap Piece (Flies off independently like classic slapstick / GTA physics)
+	if cap_mesh and cap_mesh.is_inside_tree():
+		var cap_phys_mat := PhysicsMaterial.new()
+		cap_phys_mat.friction = 0.55
+		cap_phys_mat.bounce = 0.35
+		
+		var rb_cap := RigidBody3D.new()
+		rb_cap.name = "Ragdoll_Cap"
+		rb_cap.physics_material_override = cap_phys_mat
+		rb_cap.collision_layer = 0
+		rb_cap.collision_mask = 1
+		rb_cap.mass = 0.6
+		rb_cap.linear_damp = 0.5
+		rb_cap.angular_damp = 0.8
+		
+		var cap_col := CollisionShape3D.new()
+		var cap_box := BoxShape3D.new()
+		var cap_bmesh := cap_mesh.mesh as BoxMesh
+		cap_box.size = (cap_bmesh.size if cap_bmesh else Vector3(0.44, 0.12, 0.44)) * character_scale
+		cap_col.shape = cap_box
+		rb_cap.add_child(cap_col)
+		
+		var dup_cap := cap_mesh.duplicate() as MeshInstance3D
+		dup_cap.transform = Transform3D.IDENTITY
+		dup_cap.scale = Vector3.ONE * character_scale
+		rb_cap.add_child(dup_cap)
+		
+		if cap_bill_mesh:
+			var dup_bill := cap_bill_mesh.duplicate() as MeshInstance3D
+			dup_bill.transform = cap_mesh.transform.affine_inverse() * cap_bill_mesh.transform
+			dup_bill.scale = Vector3.ONE * character_scale
+			rb_cap.add_child(dup_bill)
+		
+		p_parent.add_child(rb_cap)
+		rb_cap.global_transform = cap_mesh.global_transform
+		
+		# Cap pops off forward/upward as player tumbles forward
+		var cap_dir := (impulse_dir + Vector3(randf_range(-0.1, 0.1), 0.45, randf_range(0.15, 0.35))).normalized()
+		var cap_impulse = cap_dir * randf_range(3.0, 4.5) * rb_cap.mass
+		rb_cap.apply_central_impulse(cap_impulse)
+		rb_cap.apply_torque_impulse(Vector3(randf_range(2.0, 4.0), randf_range(-2.0, 2.0), randf_range(-2.0, 2.0)))
+		_ragdoll_nodes.append(rb_cap)

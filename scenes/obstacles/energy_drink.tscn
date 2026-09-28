@@ -1,0 +1,168 @@
+[gd_scene format=3 uid="uid://b1m8x7y4qpdc9"]
+
+[ext_resource type="Script" path="res://scripts/energy_drink.gd" id="1_drink"]
+[ext_resource type="Texture2D" path="res://assets/textures/energy_can_label.png" id="2_label"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_drink"]
+height = 0.85
+radius = 0.32
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_body"]
+top_radius = 0.14
+bottom_radius = 0.14
+height = 0.54
+radial_segments = 10
+rings = 1
+cap_top = false
+cap_bottom = false
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_label"]
+albedo_texture = ExtResource("2_label")
+metallic = 0.45
+roughness = 0.28
+texture_filter = 0
+uv1_scale = Vector3(1, 2, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_bevel_top"]
+top_radius = 0.12
+bottom_radius = 0.14
+height = 0.045
+radial_segments = 10
+cap_top = false
+cap_bottom = false
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_silver_alum"]
+albedo_color = Color(0.92, 0.94, 0.97, 1)
+metallic = 0.92
+roughness = 0.22
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_rim_top"]
+top_radius = 0.124
+bottom_radius = 0.124
+height = 0.015
+radial_segments = 10
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_silver_rim"]
+albedo_color = Color(0.96, 0.97, 0.99, 1)
+metallic = 0.96
+roughness = 0.16
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_lid_top"]
+top_radius = 0.118
+bottom_radius = 0.118
+height = 0.006
+radial_segments = 10
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_silver_lid"]
+albedo_color = Color(0.88, 0.9, 0.94, 1)
+metallic = 0.88
+roughness = 0.34
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_bevel_bottom"]
+top_radius = 0.14
+bottom_radius = 0.118
+height = 0.045
+radial_segments = 10
+cap_top = false
+cap_bottom = false
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_base_bottom"]
+top_radius = 0.118
+bottom_radius = 0.118
+height = 0.01
+radial_segments = 10
+
+[sub_resource type="BoxMesh" id="BoxMesh_tab_plate"]
+size = Vector3(0.055, 0.005, 0.095)
+
+[sub_resource type="BoxMesh" id="BoxMesh_tab_hole"]
+size = Vector3(0.028, 0.007, 0.038)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_tab_hole"]
+albedo_color = Color(0.18, 0.2, 0.24, 1)
+roughness = 0.85
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_rivet"]
+top_radius = 0.01
+bottom_radius = 0.01
+height = 0.007
+radial_segments = 8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_glow_halo"]
+transparency = 1
+blend_mode = 1
+albedo_color = Color(0.2, 0.6, 1, 0.3)
+emission_enabled = true
+emission = Color(0.15, 0.55, 1, 1)
+emission_energy_multiplier = 2.0
+
+[sub_resource type="TorusMesh" id="TorusMesh_halo"]
+inner_radius = 0.2
+outer_radius = 0.26
+rings = 16
+ring_segments = 6
+
+[node name="EnergyDrink" type="Area3D" groups=["energy_drinks", "items"]]
+collision_layer = 2
+collision_mask = 1
+script = ExtResource("1_drink")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("CylinderShape3D_drink")
+
+[node name="Visuals" type="Node3D" parent="."]
+
+[node name="CanModel" type="Node3D" parent="Visuals"]
+transform = Transform3D(0.995004, -0.0198669, 0.0978396, 0, 0.979998, 0.198997, -0.0998334, -0.198003, 0.975102, 0, 0, 0)
+
+[node name="CanBody" type="MeshInstance3D" parent="Visuals/CanModel"]
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_body")
+surface_material_override/0 = SubResource("StandardMaterial3D_label")
+
+[node name="CanTopBevel" type="MeshInstance3D" parent="Visuals/CanModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2925, 0)
+mesh = SubResource("CylinderMesh_bevel_top")
+surface_material_override/0 = SubResource("StandardMaterial3D_silver_alum")
+
+[node name="CanTopRim" type="MeshInstance3D" parent="Visuals/CanModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.32, 0)
+mesh = SubResource("CylinderMesh_rim_top")
+surface_material_override/0 = SubResource("StandardMaterial3D_silver_rim")
+
+[node name="CanTopLid" type="MeshInstance3D" parent="Visuals/CanModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.315, 0)
+mesh = SubResource("CylinderMesh_lid_top")
+surface_material_override/0 = SubResource("StandardMaterial3D_silver_lid")
+
+[node name="CanBottomBevel" type="MeshInstance3D" parent="Visuals/CanModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2925, 0)
+mesh = SubResource("CylinderMesh_bevel_bottom")
+surface_material_override/0 = SubResource("StandardMaterial3D_silver_alum")
+
+[node name="CanBottomBase" type="MeshInstance3D" parent="Visuals/CanModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.32, 0)
+mesh = SubResource("CylinderMesh_base_bottom")
+surface_material_override/0 = SubResource("StandardMaterial3D_silver_alum")
+
+[node name="PullTab" type="Node3D" parent="Visuals/CanModel"]
+transform = Transform3D(1, 0, 0, 0, 0.996195, 0.0871557, 0, -0.0871557, 0.996195, 0, 0.321, 0.012)
+
+[node name="TabPlate" type="MeshInstance3D" parent="Visuals/CanModel/PullTab"]
+mesh = SubResource("BoxMesh_tab_plate")
+surface_material_override/0 = SubResource("StandardMaterial3D_silver_rim")
+
+[node name="TabHole" type="MeshInstance3D" parent="Visuals/CanModel/PullTab"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.001, -0.022)
+mesh = SubResource("BoxMesh_tab_hole")
+surface_material_override/0 = SubResource("StandardMaterial3D_tab_hole")
+
+[node name="TabRivet" type="MeshInstance3D" parent="Visuals/CanModel/PullTab"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.003, 0.018)
+mesh = SubResource("CylinderMesh_rivet")
+surface_material_override/0 = SubResource("StandardMaterial3D_silver_alum")
+
+[node name="EnergyHalo" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.35, 0)
+mesh = SubResource("TorusMesh_halo")
+surface_material_override/0 = SubResource("StandardMaterial3D_glow_halo")

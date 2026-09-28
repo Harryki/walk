@@ -29,21 +29,25 @@ func _on_game_won(distance: float, coins_earned: int) -> void:
 	_last_coins_earned = coins_earned
 	title_label.text = "🎉 STAGE CLEAR! 🎉"
 	title_label.modulate = Color(1.0, 0.85, 0.2)
-	reason_label.text = "100m 결승선 돌파 성공!"
+	reason_label.text = "%.0fm 결승선 돌파 성공!" % GameManager.TARGET_DISTANCE
 	_update_stats_display(distance, coins_earned)
 	_update_shop_buttons()
 
 func _on_game_lost(reason: String, distance: float, coins_earned: int) -> void:
-	visible = true
 	_last_coins_earned = coins_earned
 	title_label.text = "💀 GAME OVER"
 	title_label.modulate = Color(1.0, 0.3, 0.3)
 	reason_label.text = reason
 	_update_stats_display(distance, coins_earned)
 	_update_shop_buttons()
+	
+	# Wait for slow-motion ragdoll sequence (1.4s real time)
+	await get_tree().create_timer(1.4, true, false, true).timeout
+	Engine.time_scale = 1.0
+	visible = true
 
 func _update_stats_display(distance: float, coins_earned: int) -> void:
-	distance_label.text = "최종 도달 거리: %.1fm / 100m" % distance
+	distance_label.text = "최종 도달 거리: %.1fm / %.0fm" % [distance, GameManager.TARGET_DISTANCE]
 	_render_coins_label(coins_earned)
 
 func _render_coins_label(earned: int) -> void:
@@ -105,4 +109,5 @@ func _on_slide_upgrade_pressed() -> void:
 
 func _on_retry_pressed() -> void:
 	visible = false
+	Engine.time_scale = 1.0
 	GameManager.restart_game()

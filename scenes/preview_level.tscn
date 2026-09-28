@@ -3,7 +3,6 @@
 [ext_resource type="PackedScene" uid="uid://drckdk1pb3oan" path="res://scenes/player/player.tscn" id="1_player"]
 [ext_resource type="PackedScene" uid="uid://ciprwf6lgndec" path="res://scenes/obstacles/pedestrian.tscn" id="2_ped"]
 [ext_resource type="PackedScene" uid="uid://ecar01scene" path="res://scenes/environment/car.tscn" id="3_car"]
-[ext_resource type="PackedScene" uid="uid://b8fqaepung3j3" path="res://scenes/environment/cross_car.tscn" id="4_cross_car"]
 [ext_resource type="PackedScene" uid="uid://vva46hw7afde" path="res://scenes/environment/traffic_light.tscn" id="5_traffic_light"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_prev"]
@@ -208,5 +207,5 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 6)
 [node name="Car_Track" parent="Vehicles" unique_id=407590524 instance=ExtResource("3_car")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.9, 0, 6)
 
-[node name="CrossCar_Waiting" parent="Vehicles" unique_id=1212254522 instance=ExtResource("4_cross_car")]
+[node name="CrossCar_Waiting" parent="Vehicles" unique_id=1212254522 instance=ExtResource("3_car")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.6, 0, 12.5)

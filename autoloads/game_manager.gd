@@ -29,7 +29,7 @@ enum GameState {
 }     
 
 const TARGET_DISTANCE: float = 300.0
-const TIME_LIMIT: float = 90.0
+const TIME_LIMIT: float = 40.0
 const MAX_HP: int = 3 
 
 var current_state: GameState = GameState.READY
@@ -43,6 +43,7 @@ func _ready() -> void:
 	DisplayServer.screen_set_orientation(DisplayServer.SCREEN_PORTRAIT)
 
 func start_game() -> void:
+	Engine.time_scale = 1.0
 	current_state = GameState.PLAYING
 	time_left = TIME_LIMIT
 	current_distance = 0.0
@@ -61,7 +62,11 @@ func _process(delta: float) -> void:
 	if time_left <= 0.0:
 		time_left = 0.0
 		time_updated.emit(time_left)
-		trigger_game_over("시간 초과!")
+		var p := get_tree().get_first_node_in_group(&"player")
+		if p and p.has_method(&"die") and not p.get(&"is_dead"):
+			p.die("시간 초과!", Vector3(0.0, 0.15, 1.0))
+		else:
+			trigger_game_over("시간 초과!")
 	else:
 		time_updated.emit(time_left)
 
@@ -81,7 +86,11 @@ func take_damage(amount: int = 1) -> void:
 	hp_updated.emit(current_hp)
 	
 	if current_hp <= 0:
-		trigger_game_over("체력 소진!")
+		var p := get_tree().get_first_node_in_group(&"player")
+		if p and p.has_method(&"die") and not p.get(&"is_dead"):
+			p.die("체력 소진!", Vector3(0.0, 1.2, -0.6))
+		else:
+			trigger_game_over("체력 소진!")
 
 func collect_coin(amount: int = 10) -> void:
 	if current_state != GameState.PLAYING:

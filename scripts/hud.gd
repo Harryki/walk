@@ -134,9 +134,13 @@ func _punch_button(btn: Control) -> void:
 	tw.tween_property(btn, "scale", Vector2(1.05, 1.05), 0.08)
 	tw.tween_property(btn, "scale", Vector2.ONE, 0.06)
 
-func show_boost_comic_popup() -> void:
+func show_boost_comic_popup(custom_text: String = "") -> void:
 	if not boost_comic_pop:
 		return
+	if custom_text != "":
+		boost_pop_label.text = custom_text
+	else:
+		boost_pop_label.text = "BOOST!!"
 	boost_comic_pop.visible = true
 	boost_comic_pop.pivot_offset = boost_comic_pop.size / 2.0
 	boost_comic_pop.scale = Vector2(0.3, 0.3)
@@ -232,6 +236,9 @@ func _on_stamina_updated(current: float, max_val: float, is_exhausted: bool) -> 
 			_exhausted_tween.tween_property(stamina_bar, "modulate:a", 0.3, 0.1)
 			_exhausted_tween.tween_property(stamina_bar, "modulate:a", 1.0, 0.1)
 	else:
+		if _exhausted_tween and _exhausted_tween.is_valid():
+			_exhausted_tween.kill()
+		stamina_bar.modulate.a = 1.0
 		stamina_label.text = "⚡ %d / %d" % [int(current), int(max_val)]
 		stamina_bar.modulate = Color.WHITE
 		if btn_boost:

@@ -35,15 +35,16 @@ func _physics_process(delta: float) -> void:
 	if not camera or not player:
 		return
 	
-	# Only follow player when running in normal play (not during interior transition)
-	if GameManager.current_state != GameManager.GameState.PLAYING:
+	# Follow player during normal play and death slowmo
+	if GameManager.current_state != GameManager.GameState.PLAYING and GameManager.current_state != GameManager.GameState.GAME_OVER:
 		return
 	
+	var focus_pos: Vector3 = player.get_focus_position() if player.has_method(&"get_focus_position") else player.global_position
 	# Frame-rate independent smooth tracking
 	var target_pos := Vector3(
-		camera_offset.x + player.global_position.x * 0.3,
+		camera_offset.x + focus_pos.x * 0.3,
 		camera_offset.y,
-		player.global_position.z + camera_offset.z
+		focus_pos.z + camera_offset.z
 	)
 	var weight: float = 1.0 - exp(-8.0 * delta)
 	camera.global_position = camera.global_position.lerp(target_pos, weight)

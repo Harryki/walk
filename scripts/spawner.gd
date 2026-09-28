@@ -3,6 +3,7 @@ extends Node3D
 
 @export var pedestrian_scene: PackedScene
 @export var coin_scene: PackedScene
+@export var energy_drink_scene: PackedScene
 @export var car_scene: PackedScene
 @export var npc_spawn_table: SpawnTable
 @export var item_spawn_table: SpawnTable
@@ -12,13 +13,18 @@ var player: Player
 const LANES: Array[float] = [2.0, 1.0, 0.0, -1.0, -2.0]
 const SPAWN_AHEAD_DISTANCE: float = 25.0
 const DESPAWN_BEHIND_DISTANCE: float = 6.0
-const MAX_SPAWN_Z: float = 90.0
+const MAX_SPAWN_Z: float = 285.0
 
 var pedestrian_timer: float = 0.8
 const PEDESTRIAN_INTERVAL: float = 1.5
 
-var coin_timer: float = 1.2
-const COIN_INTERVAL: float = 2.0
+var coin_timer: float = 1.0
+const ITEM_INTERVAL_MIN: float = 1.6
+const ITEM_INTERVAL_MAX: float = 2.4
+var last_item_spawn_z: float = -50.0
+const MIN_ITEM_DISTANCE: float = 8.0
+var last_energy_drink_z: float = -100.0
+const MIN_ENERGY_DRINK_DISTANCE: float = 30.0
 
 var car_timer: float = 1.0
 
@@ -45,7 +51,7 @@ func _process(delta: float) -> void:
 		
 		coin_timer -= delta
 		if coin_timer <= 0.0:
-			coin_timer = COIN_INTERVAL
+			coin_timer = randf_range(ITEM_INTERVAL_MIN, ITEM_INTERVAL_MAX)
 			_spawn_coin(player_z)
 	
 	# Background cars keep spawning along track
@@ -61,7 +67,7 @@ func _spawn_pedestrians(player_z: float) -> void:
 		return
 	
 	var spawn_z := player_z + SPAWN_AHEAD_DISTANCE
-	if spawn_z > 98.0:
+	if spawn_z > 290.0:
 		return
 	
 	# Pick 1 or 2 distinct random lanes out of 5
@@ -95,7 +101,7 @@ func _spawn_pedestrians(player_z: float) -> void:
 
 func _spawn_coin(player_z: float) -> void:
 	var spawn_z := player_z + SPAWN_AHEAD_DISTANCE + randf_range(-1.0, 1.0)
-	if spawn_z > 98.0:
+	if spawn_z > 290.0 or (spawn_z - last_item_spawn_z) < MIN_ITEM_DISTANCE:
 		return
 	
 	var candidate_lanes: Array[int] = []
@@ -109,7 +115,8 @@ func _spawn_coin(player_z: float) -> void:
 	var lane_idx: int = candidate_lanes.pick_random()
 	var lane_x: float = LANES[lane_idx]
 	
-	var chosen_scene := coin_scene
+	var default_scene := coin_scene if coin_scene else energy_drink_scene
+	var chosen_scene := default_scene
 	var chosen_data: ItemData = null
 	if item_spawn_table:
 		var res := item_spawn_table.pick_random(player_z)
@@ -117,15 +124,24 @@ func _spawn_coin(player_z: float) -> void:
 			chosen_scene = res.scene
 			chosen_data = res
 	
+	# Prevent energy drinks from clustering too close together; fallback to coin if within 30m of last drink
+	if chosen_data and chosen_data.id == &"energy_drink":
+		if (spawn_z - last_energy_drink_z) < MIN_ENERGY_DRINK_DISTANCE:
+			chosen_scene = coin_scene if coin_scene else default_scene
+			chosen_data = null
+		else:
+			last_energy_drink_z = spawn_z
+	
 	if not chosen_scene:
 		return
 		
-	var coin := chosen_scene.instantiate() as Node3D
-	coin.position = Vector3(lane_x, 0.4, spawn_z)
-	if chosen_data and coin.has_method(&"apply_data"):
-		coin.apply_data(chosen_data)
-	add_child(coin)
-	_active_entities.append(coin)
+	var item := chosen_scene.instantiate() as Node3D
+	item.position = Vector3(lane_x, 0.4, spawn_z)
+	if chosen_data and item.has_method(&"apply_data"):
+		item.apply_data(chosen_data)
+	add_child(item)
+	_active_entities.append(item)
+	last_item_spawn_z = spawn_z
 
 func _spawn_car(player_z: float) -> void:
 	if not car_scene:
@@ -139,9 +155,8 @@ func _spawn_car(player_z: float) -> void:
 	var car := car_scene.instantiate() as Car
 	if car:
 		car.position = Vector3(lane_x, 0.25, spawn_z)
-		car.direction = move_dir
-		car.speed = randf_range(6.0, 10.0)
 		add_child(car)
+		car.setup_ambient(randf_range(6.0, 10.0), move_dir)
 		_active_entities.append(car)
 
 func _despawn_offscreen(player_z: float) -> void:

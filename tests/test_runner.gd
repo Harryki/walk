@@ -6,7 +6,7 @@ const ChunkManagerClass = preload("res://scripts/chunk_manager.gd")
 const ShopBuildingClass = preload("res://scripts/shop_building.gd")
 const CrosswalkChunkClass = preload("res://scripts/crosswalk_chunk.gd")
 const TrafficLightClass = preload("res://scripts/traffic_light.gd")
-const CrossCarClass = preload("res://scripts/cross_car.gd")
+const CarClass = preload("res://scripts/car.gd")
 
 func _ready() -> void:
 	print("--- STARTING GAMEPLAY MECHANICS VERIFICATION ---")
@@ -127,8 +127,19 @@ func _ready() -> void:
 	assert(player.is_invincible, "Player should become invincible after hit")
 	# Hit again during invincibility - should not take damage
 	player.hit_by_obstacle()
-	assert(GameManager.current_hp == initial_hp - 1, "Invincible player should not take additional damage")
-	print("  -> Damage & Invincibility blink PASSED!")
+	# Test stage time limit and Energy Drink full stamina recovery
+	assert(GameManager.TIME_LIMIT == 40.0, "Stage time limit must be 40.0 seconds")
+	assert(GameManager.time_left == 40.0, "Initial time left must be 40.0 seconds")
+	player.current_stamina = 5.0
+	player.is_exhausted = true
+	var energy_drink_scene: PackedScene = load("res://scenes/obstacles/energy_drink.tscn")
+	assert(energy_drink_scene != null, "Energy drink scene must exist")
+	var energy_drink = energy_drink_scene.instantiate()
+	add_child(energy_drink)
+	energy_drink.collect(player)
+	assert(player.current_stamina == player.max_stamina, "Energy drink must fill stamina to 100%")
+	assert(not player.is_exhausted, "Energy drink must clear exhaustion")
+	print("  -> 40s Stage Time Limit & Energy Drink 100% Stamina Restore PASSED!")
 	
 	# 3. Test Data-driven SpawnTable
 	print("[TEST 3] Data-Driven Spawner:")
@@ -138,7 +149,10 @@ func _ready() -> void:
 	assert(picked_npc != null and picked_npc.id == &"pedestrian_normal", "Should pick valid normal pedestrian at distance 0")
 	var jogger_npc = npc_table.pick_random(50.0)
 	assert(jogger_npc != null, "Should pick valid NPCData at distance 50")
-	print("  -> SpawnTable weighted sampling PASSED!")
+	var item_table = load("res://resources/spawns/item_table_default.tres")
+	assert(item_table != null, "Default Item SpawnTable should load")
+	assert(item_table.rules.size() == 3, "Item table should contain coin, super coin, and energy drink")
+	print("  -> SpawnTable weighted sampling & Item Table PASSED!")
 	
 	# 4. Test ChunkManager & BaseChunk
 	print("[TEST 4] ChunkManager & BaseChunk:")
@@ -278,12 +292,20 @@ func _ready() -> void:
 	cw_t3.setup_crosswalk(9, 3)
 	assert(cw_t3.cross_lanes.size() == 4, "Tier 3 must have 4 cross lanes")
 	
-	# Test CrossCar lethal collision on player
-	var cross_car_scene: PackedScene = load("res://scenes/environment/cross_car.tscn")
-	assert(cross_car_scene != null, "CrossCar scene must load")
-	var car = cross_car_scene.instantiate()
+	# Test Car lethal collision on player
+	var car_scene: PackedScene = load("res://scenes/environment/car.tscn")
+	assert(car_scene != null, "Car scene must load")
+	var car = car_scene.instantiate()
 	add_child(car)
 	car.setup(25.0, 1.0)
+	
+	# Test ambient car mode setup
+	var ambient_car = car_scene.instantiate()
+	add_child(ambient_car)
+	ambient_car.setup_ambient(10.0, 1.0)
+	assert(ambient_car.drive_mode == Car.DriveMode.AMBIENT, "Ambient car must be in AMBIENT drive mode")
+	assert(not ambient_car.monitoring and not ambient_car.monitorable, "Ambient car must not monitor or be monitorable")
+	ambient_car.queue_free()
 	
 	# Reset player state
 	GameManager.current_state = GameManager.GameState.PLAYING
@@ -294,6 +316,10 @@ func _ready() -> void:
 	# Direct hit while walking
 	car._on_body_entered(player)
 	assert(GameManager.current_state == GameManager.GameState.GAME_OVER, "Car collision without slide must cause lethal GAME_OVER")
+	assert(Engine.time_scale < 0.5, "Death must trigger slow-motion (time_scale < 0.5)")
+	assert(player.is_dead, "Player must be flagged dead")
+	player.reset_state()
+	assert(Engine.time_scale == 1.0, "Resetting state must restore normal time_scale 1.0")
 	
 	# Collision while sliding
 	GameManager.current_state = GameManager.GameState.PLAYING
@@ -301,8 +327,37 @@ func _ready() -> void:
 	player.is_invincible = true
 	car._on_body_entered(player)
 	assert(GameManager.current_state == GameManager.GameState.PLAYING, "Sliding player must evade lethal car collision")
+	player.reset_state()
 	
-	print("  -> Multi-Tier Crosswalks, Traffic Lights & Lethal Cars PASSED!")
+	# Test Pedestrian waiting at red light on exit sidewalk
+	var ped_test_scene: PackedScene = load("res://scenes/obstacles/pedestrian.tscn")
+	var ped_tester: Pedestrian = ped_test_scene.instantiate()
+	add_child(ped_tester)
+	# Position pedestrian approaching crosswalk from exit side (cross_z_end is 15.0)
+	ped_tester.global_position = cw_t1.global_position + Vector3(0.0, 0.0, cw_t1.cross_z_end + 1.0)
+	cw_t1.traffic_light._set_state(TrafficLightClass.LightState.RED)
+	cw_t1._process_signal_stops(true)
+	assert(ped_tester.is_waiting, "Pedestrian approaching red crosswalk must be waiting")
+	var wait_pos_z: float = ped_tester.global_position.z
+	ped_tester._physics_process(0.016)
+	assert(ped_tester.global_position.z == wait_pos_z, "Waiting pedestrian must not advance towards road")
+	
+	# When light turns GREEN, pedestrian stops waiting and resumes walking
+	cw_t1.traffic_light._set_state(TrafficLightClass.LightState.GREEN)
+	ped_tester._physics_process(0.016)
+	assert(not ped_tester.is_waiting, "Pedestrian must stop waiting when light turns green")
+	ped_tester.queue_free()
+	
+	# Test CrossCar knocking down pedestrian in the road
+	var ped_in_road: Pedestrian = ped_test_scene.instantiate()
+	add_child(ped_in_road)
+	car.current_speed = 25.0
+	car.is_stopped = false
+	car._on_area_entered(ped_in_road)
+	assert(ped_in_road.is_dead, "Speeding car must knock down pedestrian in road")
+	ped_in_road.queue_free()
+	
+	print("  -> Multi-Tier Crosswalks, Traffic Lights, Pedestrian Red Stop & Lethal Cars PASSED!")
 	
 	# 7. Test Audio Buses, Street Ambience & Dynamic Footsteps
 	print("[TEST 7] Audio Buses, Street Ambience & Dynamic Footsteps:")

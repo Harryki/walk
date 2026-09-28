@@ -1,7 +1,7 @@
 class_name ItemData
 extends Resource
 
-enum ItemType { COIN, SUPER_COIN, MAGNET, SHIELD }
+enum ItemType { COIN, SUPER_COIN, MAGNET, SHIELD, ENERGY_DRINK }
 
 @export_category("Basic")
 @export var id: StringName = &"coin_normal"

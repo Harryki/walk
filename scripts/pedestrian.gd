@@ -100,6 +100,8 @@ func _physics_process(delta: float) -> void:
 			stop_waiting()
 		else:
 			global_position.z = waiting_stop_z
+			if visual_root:
+				visual_root.position.y = move_toward(visual_root.position.y, 0.0, delta * 2.0)
 			return
 	
 	# Synchronized with physics tick
