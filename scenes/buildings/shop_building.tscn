@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://cshop01building"]
 
 [ext_resource type="Script" path="res://scripts/shop_building.gd" id="1_shop"]
+[ext_resource type="FontFile" path="res://assets/fonts/Galmuri11.ttf" id="2_font"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_body"]
 size = Vector3(2.2, 5.2, 4.8)
@@ -71,7 +72,8 @@ double_sided = false
 no_depth_test = true
 modulate = Color(1, 0.9, 0.2, 1)
 outline_modulate = Color(0, 0, 0, 1)
-text = "👈 SWIPE (입장)"
+text = "SWIPE (입장)"
+font = ExtResource("2_font")
 font_size = 40
 outline_size = 8
 

@@ -2,14 +2,12 @@ extends Node
 
 signal game_started
 signal game_won(distance: float, coins_collected: int)
-signal game_lost(reason: String, distance: float, coins_collected: int)
+signal game_lost(reason: String, distance: float, coins_collected: int, score: int, is_new_record: bool)
 signal coin_collected(current_total: int, run_total: int)
-signal distance_updated(current_dist: float, max_dist: float)
-signal time_updated(time_left: float)
+signal distance_updated(current_dist: float, best_dist: float)
 signal hp_updated(hp: int)
 
-signal stamina_updated(stamina: float, max_stamina: float, is_exhausted: bool)
-signal slide_cooldown_updated(time_left: float, max_time: float)
+signal near_miss_triggered(combo: int, current_speed: float)
 signal traffic_wait_updated(is_waiting: bool, time_left: float, is_go: bool)
 signal interior_entering(shop: Node3D)
 signal interior_entered
@@ -28,56 +26,39 @@ enum GameState {
 	VICTORY
 }     
 
-const TARGET_DISTANCE: float = 300.0
-const TIME_LIMIT: float = 40.0
 const MAX_HP: int = 3 
 
 var current_state: GameState = GameState.READY
-var time_left: float = TIME_LIMIT
 var current_distance: float = 0.0
 var run_coins: int = 0 
+var run_near_misses: int = 0
 var current_hp: int = MAX_HP
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	DisplayServer.screen_set_orientation(DisplayServer.SCREEN_PORTRAIT)
+	near_miss_triggered.connect(func(_combo, _spd): run_near_misses += 1)
 
 func start_game() -> void:
 	Engine.time_scale = 1.0
 	current_state = GameState.PLAYING
-	time_left = TIME_LIMIT
 	current_distance = 0.0
 	run_coins = 0
+	run_near_misses = 0
 	current_hp = MAX_HP
 	game_started.emit()
 	hp_updated.emit(current_hp)
-	distance_updated.emit(0.0, TARGET_DISTANCE)
-	time_updated.emit(time_left)
-
-func _process(delta: float) -> void:
-	if current_state != GameState.PLAYING:
-		return
-	
-	time_left -= delta
-	if time_left <= 0.0:
-		time_left = 0.0
-		time_updated.emit(time_left)
-		var p := get_tree().get_first_node_in_group(&"player")
-		if p and p.has_method(&"die") and not p.get(&"is_dead"):
-			p.die("시간 초과!", Vector3(0.0, 0.15, 1.0))
-		else:
-			trigger_game_over("시간 초과!")
-	else:
-		time_updated.emit(time_left)
+	distance_updated.emit(0.0, SaveManager.best_distance)
 
 func update_distance(dist: float) -> void:
 	if current_state != GameState.PLAYING:
 		return
-	current_distance = clampf(dist, 0.0, TARGET_DISTANCE)
-	distance_updated.emit(current_distance, TARGET_DISTANCE)
-	
-	if current_distance >= TARGET_DISTANCE:
-		trigger_victory()
+	if dist > current_distance:
+		current_distance = dist
+		distance_updated.emit(current_distance, SaveManager.best_distance)
+
+func calculate_score() -> int:
+	return int(current_distance * 10.0) + (run_coins * 50) + (run_near_misses * 100)
 
 func take_damage(amount: int = 1) -> void:
 	if current_state != GameState.PLAYING:
@@ -109,7 +90,9 @@ func trigger_game_over(reason: String) -> void:
 	if current_state != GameState.PLAYING:
 		return
 	current_state = GameState.GAME_OVER
-	game_lost.emit(reason, current_distance, run_coins)
+	var final_score := calculate_score()
+	var is_new := SaveManager.update_best_run(current_distance, final_score)
+	game_lost.emit(reason, current_distance, run_coins, final_score, is_new)
 
 func pause_game() -> void:
 	if current_state == GameState.PLAYING:
@@ -125,5 +108,4 @@ func is_playing() -> bool:
 	return current_state == GameState.PLAYING
 
 func restart_game() -> void:
-	# Main._ready() will initialize and start game
 	get_tree().reload_current_scene()

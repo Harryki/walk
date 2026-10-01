@@ -200,28 +200,23 @@ func _update_speech_bubble(immediate: bool = false) -> void:
 	
 	# Content based on current station
 	match current_station:
-		0: # Stamina Upgrade
-			bubble_title.text = "⚡ 최대 스태미너 강화"
-			var cur_lvl := SaveManager.max_stamina_level
-			var max_lvl := 2
-			var cur_val := SaveManager.get_max_stamina()
-			var cost := SaveManager.get_stamina_upgrade_cost()
-			
-			if cur_lvl >= max_lvl:
-				bubble_desc.text = "최대 레벨 도달! (%.0f)" % cur_val
-				bubble_cost.text = "⭐ MAX UPGRADE"
+		0: # Heal Station
+			bubble_title.text = "체력 회복 (+1 HP)"
+			var cost := 30
+			if GameManager.current_hp >= GameManager.MAX_HP:
+				bubble_desc.text = "체력이 이미 가득 찼습니다! (%d/%d)" % [GameManager.current_hp, GameManager.MAX_HP]
+				bubble_cost.text = "FULL HP"
 				bubble_cost.modulate = Color(0.4, 0.9, 0.4)
 			else:
-				var next_val := SaveManager.STAMINA_VALUES[cur_lvl + 1]
-				bubble_desc.text = "최대치 %.0f -> %.0f (+20)" % [cur_val, next_val]
+				bubble_desc.text = "현재 체력 %d -> %d" % [GameManager.current_hp, GameManager.current_hp + 1]
 				if SaveManager.coins >= cost:
-					bubble_cost.text = "💰 %d 코인 [탭하여 구매]" % cost
+					bubble_cost.text = "%d 코인 [탭하여 회복]" % cost
 					bubble_cost.modulate = Color(1.0, 0.85, 0.2)
 				else:
-					bubble_cost.text = "💰 %d 코인 (코인 부족)" % cost
+					bubble_cost.text = "%d 코인 (코인 부족)" % cost
 					bubble_cost.modulate = Color(0.9, 0.35, 0.35)
 		1: # Speed Upgrade
-			bubble_title.text = "👟 기본 달리기 속도 강화"
+			bubble_title.text = "기본 달리기 속도 강화"
 			var cur_lvl := SaveManager.base_speed_level
 			var max_lvl := 2
 			var cur_val := SaveManager.get_base_speed()
@@ -229,45 +224,36 @@ func _update_speech_bubble(immediate: bool = false) -> void:
 			
 			if cur_lvl >= max_lvl:
 				bubble_desc.text = "최대 레벨 도달! (%.1f m/s)" % cur_val
-				bubble_cost.text = "⭐ MAX UPGRADE"
+				bubble_cost.text = "MAX UPGRADE"
 				bubble_cost.modulate = Color(0.4, 0.9, 0.4)
 			else:
 				var next_val := SaveManager.SPEED_VALUES[cur_lvl + 1]
 				bubble_desc.text = "속도 %.1f -> %.1f m/s" % [cur_val, next_val]
 				if SaveManager.coins >= cost:
-					bubble_cost.text = "💰 %d 코인 [탭하여 구매]" % cost
+					bubble_cost.text = "%d 코인 [탭하여 구매]" % cost
 					bubble_cost.modulate = Color(1.0, 0.85, 0.2)
 				else:
-					bubble_cost.text = "💰 %d 코인 (코인 부족)" % cost
+					bubble_cost.text = "%d 코인 (코인 부족)" % cost
 					bubble_cost.modulate = Color(0.9, 0.35, 0.35)
-		2: # Slide Unlock
-			bubble_title.text = "💨 슬라이드 대시 해금"
-			var unlocked := SaveManager.is_slide_unlocked()
-			var cost := SaveManager.SLIDE_COST
-			
-			if unlocked:
-				bubble_desc.text = "위로 스와이프하여 무적 대시 발동!"
-				bubble_cost.text = "✨ 해금 완료 (보유 중)"
-				bubble_cost.modulate = Color(0.4, 0.9, 0.4)
-			else:
-				bubble_desc.text = "보행자 무적 통과 & 초고속 돌파!"
-				if SaveManager.coins >= cost:
-					bubble_cost.text = "💰 %d 코인 [탭하여 구매]" % cost
-					bubble_cost.modulate = Color(1.0, 0.85, 0.2)
-				else:
-					bubble_cost.text = "💰 %d 코인 (코인 부족)" % cost
-					bubble_cost.modulate = Color(0.9, 0.35, 0.35)
+		2: # Refreshment Display
+			bubble_title.text = "시원한 음료수 진열대"
+			bubble_desc.text = "상쾌한 탄산음료들이 진열되어 있습니다."
+			bubble_cost.text = "휴식 중"
+			bubble_cost.modulate = Color(0.6, 0.8, 1.0)
 		3: # Exit Mat
-			bubble_title.text = "🚪 거리로 나가기"
+			bubble_title.text = "거리로 나가기"
 			bubble_desc.text = "달리기를 계속 진행합니다."
-			bubble_cost.text = "👉 [탭하여 나가기]"
+			bubble_cost.text = "[탭하여 나가기]"
 			bubble_cost.modulate = Color(0.3, 0.85, 1.0)
 
 func _interact_current_station() -> void:
 	match current_station:
 		0:
-			if SaveManager.can_upgrade_stamina():
-				SaveManager.upgrade_stamina()
+			if SaveManager.coins >= 30 and GameManager.current_hp < GameManager.MAX_HP:
+				SaveManager.coins -= 30
+				SaveManager.save_data()
+				GameManager.current_hp = mini(GameManager.current_hp + 1, GameManager.MAX_HP)
+				GameManager.hp_updated.emit(GameManager.current_hp)
 				_pulse_item(item1_mesh)
 				_update_speech_bubble(false)
 		1:
@@ -276,10 +262,7 @@ func _interact_current_station() -> void:
 				_pulse_item(item2_mesh)
 				_update_speech_bubble(false)
 		2:
-			if SaveManager.can_unlock_slide():
-				SaveManager.unlock_slide()
-				_pulse_item(item3_mesh)
-				_update_speech_bubble(false)
+			_pulse_item(item3_mesh)
 		3:
 			trigger_exit()
 

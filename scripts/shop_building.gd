@@ -17,9 +17,11 @@ var player_in_zone: CharacterBody3D = null
 var prompt_tween: Tween
 
 func _ready() -> void:
+	# Keep building asset as street scenery, disable street doorway trigger for future redesign
+	is_active = false
 	if door_area:
-		door_area.body_entered.connect(_on_door_body_entered)
-		door_area.body_exited.connect(_on_door_body_exited)
+		door_area.monitoring = false
+		door_area.monitorable = false
 	_hide_prompt()
 
 func _on_door_body_entered(body: Node3D) -> void:

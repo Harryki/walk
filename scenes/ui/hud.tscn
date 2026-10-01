@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/hud.gd" id="1_hud"]
 [ext_resource type="Theme" path="res://resources/themes/comic_neobrutalism_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" path="res://assets/ui/heart_32x32.png" id="3_heart"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card_white"]
 content_margin_left = 12.0
@@ -325,35 +326,44 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Heart1" type="Label" parent="SafeMargin/Layout/TopSection/HeaderRow/HPBadge/HPContainer"]
+[node name="Heart1" type="TextureRect" parent="SafeMargin/Layout/TopSection/HeaderRow/HPBadge/HPContainer"]
+texture_filter = 1
+custom_minimum_size = Vector2(28, 28)
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "❤️"
+texture = ExtResource("3_heart")
+expand_mode = 1
+stretch_mode = 5
 
-[node name="Heart2" type="Label" parent="SafeMargin/Layout/TopSection/HeaderRow/HPBadge/HPContainer"]
+[node name="Heart2" type="TextureRect" parent="SafeMargin/Layout/TopSection/HeaderRow/HPBadge/HPContainer"]
+texture_filter = 1
+custom_minimum_size = Vector2(28, 28)
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "❤️"
+texture = ExtResource("3_heart")
+expand_mode = 1
+stretch_mode = 5
 
-[node name="Heart3" type="Label" parent="SafeMargin/Layout/TopSection/HeaderRow/HPBadge/HPContainer"]
+[node name="Heart3" type="TextureRect" parent="SafeMargin/Layout/TopSection/HeaderRow/HPBadge/HPContainer"]
+texture_filter = 1
+custom_minimum_size = Vector2(28, 28)
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "❤️"
+texture = ExtResource("3_heart")
+expand_mode = 1
+stretch_mode = 5
 
-[node name="TimeBadge" type="PanelContainer" parent="SafeMargin/Layout/TopSection/HeaderRow"]
+[node name="ScoreBadge" type="PanelContainer" parent="SafeMargin/Layout/TopSection/HeaderRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_card_yellow")
 
-[node name="TimeLabel" type="Label" parent="SafeMargin/Layout/TopSection/HeaderRow/TimeBadge"]
+[node name="ScoreLabel" type="Label" parent="SafeMargin/Layout/TopSection/HeaderRow/ScoreBadge"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0, 0, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 22
-text = "00:45.00"
+theme_override_font_sizes/font_size = 19
+text = "BEST 0m"
 horizontal_alignment = 1
 
 [node name="CoinBadge" type="PanelContainer" parent="SafeMargin/Layout/TopSection/HeaderRow"]
@@ -369,7 +379,7 @@ theme_override_colors/font_color = Color(0, 0, 0, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 0
 theme_override_font_sizes/font_size = 20
-text = "🪙 0"
+text = "COIN: 0"
 horizontal_alignment = 1
 
 [node name="DistanceContainer" type="VBoxContainer" parent="SafeMargin/Layout/TopSection"]
@@ -395,7 +405,7 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 0
 theme_override_font_sizes/font_size = 14
-text = "🏃 0.0m / 300m"
+text = "0.0m"
 horizontal_alignment = 1
 
 [node name="DistanceProgressBar" type="ProgressBar" parent="SafeMargin/Layout/TopSection/DistanceContainer"]
@@ -406,60 +416,41 @@ theme_override_styles/background = SubResource("StyleBoxFlat_distance_bg")
 theme_override_styles/fill = SubResource("StyleBoxFlat_distance_fill")
 show_percentage = false
 
-[node name="StaminaContainer" type="VBoxContainer" parent="SafeMargin/Layout/TopSection"]
-layout_mode = 2
-mouse_filter = 2
 
-[node name="StaminaBar" type="ProgressBar" parent="SafeMargin/Layout/TopSection/StaminaContainer"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 26)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_styles/background = SubResource("StyleBoxFlat_stamina_bg")
-theme_override_styles/fill = SubResource("StyleBoxFlat_stamina_fill")
-value = 100.0
-show_percentage = false
-
-[node name="StaminaLabel" type="Label" parent="SafeMargin/Layout/TopSection/StaminaContainer/StaminaBar"]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 6
-theme_override_font_sizes/font_size = 13
-text = "⚡ 100 / 100"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="CenterSection" type="CenterContainer" parent="SafeMargin/Layout"]
+[node name="CenterSection" type="Control" parent="SafeMargin/Layout"]
 layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
 
-[node name="TrafficAlertBanner" type="PanelContainer" parent="SafeMargin/Layout/CenterSection"]
+[node name="BottomSection" type="VBoxContainer" parent="SafeMargin/Layout"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="AlertAnchor" type="CenterContainer" parent="SafeMargin/Layout/BottomSection"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="TrafficAlertBanner" type="PanelContainer" parent="SafeMargin/Layout/BottomSection/AlertAnchor"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 rotation = -0.0523599
 theme_override_styles/panel = SubResource("StyleBoxFlat_alert_card")
 
-[node name="AlertVBox" type="VBoxContainer" parent="SafeMargin/Layout/CenterSection/TrafficAlertBanner"]
+[node name="AlertVBox" type="VBoxContainer" parent="SafeMargin/Layout/BottomSection/AlertAnchor/TrafficAlertBanner"]
 layout_mode = 2
 theme_override_constants/separation = 4
 alignment = 1
 
-[node name="AlertIcon" type="Label" parent="SafeMargin/Layout/CenterSection/TrafficAlertBanner/AlertVBox"]
+[node name="AlertIcon" type="Label" parent="SafeMargin/Layout/BottomSection/AlertAnchor/TrafficAlertBanner/AlertVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 38
-text = "🛑"
+text = "STOP"
 horizontal_alignment = 1
 
-[node name="AlertTitle" type="Label" parent="SafeMargin/Layout/CenterSection/TrafficAlertBanner/AlertVBox"]
+[node name="AlertTitle" type="Label" parent="SafeMargin/Layout/BottomSection/AlertAnchor/TrafficAlertBanner/AlertVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0, 0.333333, 1)
@@ -469,7 +460,7 @@ theme_override_font_sizes/font_size = 30
 text = "WAIT!"
 horizontal_alignment = 1
 
-[node name="AlertCountdown" type="Label" parent="SafeMargin/Layout/CenterSection/TrafficAlertBanner/AlertVBox"]
+[node name="AlertCountdown" type="Label" parent="SafeMargin/Layout/BottomSection/AlertAnchor/TrafficAlertBanner/AlertVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0, 0, 1)
@@ -478,107 +469,21 @@ theme_override_font_sizes/font_size = 15
 text = "횡단보도 대기: 3초"
 horizontal_alignment = 1
 
-[node name="BoostComicPop" type="PanelContainer" parent="SafeMargin/Layout/CenterSection"]
+[node name="BoostComicPop" type="PanelContainer" parent="SafeMargin/Layout/BottomSection/AlertAnchor"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 rotation = 0.0872665
 theme_override_styles/panel = SubResource("StyleBoxFlat_boost_pop_card")
 
-[node name="BoostPopLabel" type="Label" parent="SafeMargin/Layout/CenterSection/BoostComicPop"]
+[node name="BoostPopLabel" type="Label" parent="SafeMargin/Layout/BottomSection/AlertAnchor/BoostComicPop"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0, 0, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 0
 theme_override_font_sizes/font_size = 32
-text = "BOOST! 🔥"
-horizontal_alignment = 1
-
-[node name="BottomSection" type="VBoxContainer" parent="SafeMargin/Layout"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 10
-
-[node name="MobileControlBar" type="HBoxContainer" parent="SafeMargin/Layout/BottomSection"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 12
-
-[node name="BtnBoost" type="Button" parent="SafeMargin/Layout/BottomSection/MobileControlBar"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 76)
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_stretch_ratio = 1.3
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_cyan_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_cyan_pressed")
-
-[node name="BoostVBox" type="VBoxContainer" parent="SafeMargin/Layout/BottomSection/MobileControlBar/BtnBoost"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-theme_override_constants/separation = 1
-alignment = 1
-
-[node name="BoostTitle" type="Label" parent="SafeMargin/Layout/BottomSection/MobileControlBar/BtnBoost/BoostVBox"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_colors/font_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 19
-text = "TAP BOOST ⚡"
-horizontal_alignment = 1
-
-[node name="BoostSub" type="Label" parent="SafeMargin/Layout/BottomSection/MobileControlBar/BtnBoost/BoostVBox"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.12, 0.12, 0.12, 0.8)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 12
-text = "연타하여 가속!"
-horizontal_alignment = 1
-
-[node name="BtnSlide" type="Button" parent="SafeMargin/Layout/BottomSection/MobileControlBar"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 76)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_green_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_green_pressed")
-
-[node name="SlideVBox" type="VBoxContainer" parent="SafeMargin/Layout/BottomSection/MobileControlBar/BtnSlide"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-theme_override_constants/separation = 1
-alignment = 1
-
-[node name="SlideTitle" type="Label" parent="SafeMargin/Layout/BottomSection/MobileControlBar/BtnSlide/SlideVBox"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_colors/font_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 17
-text = "💨 돌파"
-horizontal_alignment = 1
-
-[node name="SlideTimerLabel" type="Label" parent="SafeMargin/Layout/BottomSection/MobileControlBar/BtnSlide/SlideVBox"]
-unique_name_in_owner = true
-layout_mode = 2
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.12, 0.12, 0.12, 0.9)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 12
-text = "READY!"
+text = "BOOST!"
 horizontal_alignment = 1
 
 [node name="BottomHint" type="PanelContainer" parent="SafeMargin/Layout/BottomSection"]
@@ -591,7 +496,7 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_hint_box")
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.95, 0.95, 0.95, 0.9)
-theme_override_font_sizes/font_size = 12
-text = "화면 스와이프로 차선 변경 • 탭하여 가속"
+theme_override_font_sizes/font_size = 13
+text = "화면 좌/우 터치로 이동  •  보행자를 스치면 초고속 가속!"
 horizontal_alignment = 1
 vertical_alignment = 1

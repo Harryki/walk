@@ -5,6 +5,9 @@
 [sub_resource type="BoxShape3D" id="BoxShape3D_ped"]
 size = Vector3(0.97499996, 1.5, 0.97499996)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_near_miss"]
+size = Vector3(3.6, 1.5, 1.8)
+
 [sub_resource type="BoxMesh" id="BoxMesh_body"]
 size = Vector3(0.5, 0.45, 0.45)
 
@@ -44,6 +47,14 @@ character_scale = 1.5
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=286374472]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
 shape = SubResource("BoxShape3D_ped")
+
+[node name="NearMissArea" type="Area3D" parent="." unique_id=782391024]
+collision_layer = 0
+collision_mask = 1
+
+[node name="NearMissCollisionShape" type="CollisionShape3D" parent="NearMissArea" unique_id=782391025]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+shape = SubResource("BoxShape3D_near_miss")
 
 [node name="Visuals" type="Node3D" parent="." unique_id=159999414]
 

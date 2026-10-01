@@ -13,67 +13,31 @@ const MAX_LANE: int = 2
 		character_scale = val
 		_apply_character_scale()
 
-# Speed & Boost parameters
-var base_speed: float = 1.0
-const TAP_BOOST: float = 0.5
+# Speed & Near-Miss Boost parameters
+var base_speed: float = 4.0
+const NEAR_MISS_BOOST: float = 2.0
 const MAX_SPEED: float = 16.0
-const SPEED_DECAY_DELAY: float = 0.25
-const SPEED_DECAY_RATE: float = 2.0 # Smoother, more satisfying decay
+const BOOST_HOLD_DURATION: float = 2.0 # Keep top speed for 2 seconds after near miss
+const SPEED_DECAY_RATE: float = 3.0   # Smoothly decay towards base_speed after hold duration
+const COMBO_TIMEOUT: float = 3.5
 
-var current_speed: float = 1.0
-var time_since_last_tap: float = 0.0
-
-# Stamina parameters
-var max_stamina: float = 100.0
-var current_stamina: float = 100.0
-const TAP_STAMINA_COST: float = 5.0
-const STAMINA_RECOVERY_RATE: float = 15.0 # per second
-var is_exhausted: bool = false
-var exhausted_timer: float = 0.0
-const EXHAUSTED_DURATION: float = 2.0
+var current_speed: float = 4.0
+var boost_hold_timer: float = 0.0
+var near_miss_combo: int = 0
+var combo_reset_timer: float = 0.0
 
 # Lane change tween
 var current_lane: int = 0
 var target_x: float = 0.0
 var lane_tween: Tween
 
-# Slide parameters
-const SLIDE_DURATION: float = 0.4
-const SLIDE_COOLDOWN: float = 5.0
-const SLIDE_STAMINA_COST: float = 25.0
-const SLIDE_SPEED_BONUS: float = 10.0 # 4.0m / 0.4s
-var is_sliding: bool = false
-var slide_timer: float = 0.0
-var slide_cooldown_timer: float = 0.0
-
 # Health & Invincibility
 var is_invincible: bool = false
 var invincibility_timer: float = 0.0
 const INVINCIBILITY_DURATION: float = 1.0
 
-# Pointer & touch input detection
-var touch_start_pos: Vector2 = Vector2.ZERO
-var touch_start_time: float = 0.0
-var is_touch_active: bool = false
-var has_swiped: bool = false
-const SWIPE_THRESHOLD: float = 32.0 # pixels
-const TAP_MAX_DURATION: float = 0.35 # seconds for tap vs hold
-var last_swipe_time: float = 0.0
-const SWIPE_CHAIN_COOLDOWN: float = 0.12 # matches lane_tween duration
-var current_door_target: Node3D = null
 
-# Screen-aligned directions
-const SCREEN_RIGHT := Vector2(1.0, 0.0)
-const SCREEN_LEFT := Vector2(-1.0, 0.0)
-const SCREEN_UP := Vector2(0.0, -1.0)
-const SCREEN_DOWN := Vector2(0.0, 1.0)
-
-# Default fallback isometric axes matching the camera projection (approx. 22-degree skew)
-const DEFAULT_ISO_RIGHT := Vector2(0.9275, 0.3739)
-const DEFAULT_ISO_LEFT := Vector2(-0.9275, -0.3739)
-const DEFAULT_ISO_UP := Vector2(0.6134, -0.7898)
-const DEFAULT_ISO_DOWN := Vector2(-0.6134, 0.7898)
-
+# Signal wait state
 var is_waiting_at_signal: bool = false
 var waiting_traffic_light: TrafficLight = null
 var waiting_stop_z: float = 0.0
@@ -97,7 +61,6 @@ func get_focus_position() -> Vector3:
 @onready var cap_bill_mesh: MeshInstance3D = get_node_or_null("Visuals/CapBill")
 @onready var eye_l_mesh: MeshInstance3D = get_node_or_null("Visuals/EyeL")
 @onready var eye_r_mesh: MeshInstance3D = get_node_or_null("Visuals/EyeR")
-@onready var aura_mesh: MeshInstance3D = $Visuals/SlideAura
 @onready var collision_shape: CollisionShape3D = $CollisionShape3D
 @onready var footstep_audio: AudioStreamPlayer = get_node_or_null("FootstepAudio")
 
@@ -121,18 +84,14 @@ func _ready() -> void:
 		return
 	
 	base_speed = SaveManager.get_base_speed()
-	max_stamina = SaveManager.get_max_stamina()
-	current_stamina = max_stamina
 	current_speed = base_speed
 	target_x = LANES[current_lane + 2]
 	position = Vector3(target_x, 0.0, 0.0)
 	
-	if aura_mesh:
-		aura_mesh.visible = false
-	
 	# Create wait status label above player head
 	wait_label = Label3D.new()
-	wait_label.text = "🛑 대기중"
+	wait_label.font = preload("res://assets/fonts/Galmuri11.ttf")
+	wait_label.text = "대기중"
 	wait_label.position = Vector3(0.0, 1.8, 0.0)
 	wait_label.font_size = 28
 	wait_label.outline_size = 6
@@ -142,7 +101,6 @@ func _ready() -> void:
 	add_child(wait_label)
 	
 	_apply_character_scale()
-	_emit_stamina()
 	
 	GameManager.game_started.connect(reset_state)
 	GameManager.game_lost.connect(_on_game_lost)
@@ -171,35 +129,26 @@ func _physics_process(delta: float) -> void:
 	if GameManager.current_state != GameManager.GameState.PLAYING:
 		return
 	
-	_handle_stamina(delta)
-	_handle_speed_decay(delta)
-	_handle_slide_timers(delta)
+	_handle_speed_and_combo(delta)
 	
 	# Handle Crosswalk Red Light Waiting
 	if is_waiting_at_signal:
-		# When traffic light turns green or warning, immediately unblock all waiting characters
 		if waiting_traffic_light == null or waiting_traffic_light.is_safe_to_cross():
 			end_crosswalk_wait()
 		else:
 			global_position.z = waiting_stop_z
 			velocity.z = 0.0
 			
-			# Update wait label dynamically based on traffic light remaining red duration
 			var remaining := waiting_traffic_light.get_remaining_time()
 			if wait_label:
-				wait_label.text = "🛑 대기중 (%d초)" % int(ceilf(remaining))
+				wait_label.text = "대기중 (%d초)" % int(ceilf(remaining))
 			GameManager.traffic_wait_updated.emit(true, remaining, false)
 			
 			move_and_slide()
 			GameManager.update_distance(global_position.z)
 			return
 	
-	# Forward velocity (physics-based slide bonus ensures clean collision and zero tunneling)
-	var forward_speed := current_speed
-	if is_sliding:
-		forward_speed += SLIDE_SPEED_BONUS
-	
-	velocity.z = forward_speed
+	velocity.z = current_speed
 	velocity.y = 0.0
 	velocity.x = 0.0
 	
@@ -207,24 +156,65 @@ func _physics_process(delta: float) -> void:
 	
 	GameManager.update_distance(global_position.z)
 
+func _handle_speed_and_combo(delta: float) -> void:
+	# Combo expiration
+	if combo_reset_timer > 0.0:
+		combo_reset_timer -= delta
+		if combo_reset_timer <= 0.0:
+			near_miss_combo = 0
+	
+	# Speed hold and gradual decay
+	if boost_hold_timer > 0.0:
+		boost_hold_timer -= delta
+		if boost_hold_timer < 0.0:
+			var remaining_delta := -boost_hold_timer
+			boost_hold_timer = 0.0
+			if current_speed > base_speed:
+				current_speed = move_toward(current_speed, base_speed, SPEED_DECAY_RATE * remaining_delta)
+	elif current_speed > base_speed:
+		current_speed = move_toward(current_speed, base_speed, SPEED_DECAY_RATE * delta)
+
+func trigger_near_miss(_source: Node3D = null) -> void:
+	if is_dead or is_waiting_at_signal:
+		return
+	
+	# Boost speed and refresh hold duration
+	boost_hold_timer = BOOST_HOLD_DURATION
+	near_miss_combo += 1
+	combo_reset_timer = COMBO_TIMEOUT
+	current_speed = minf(current_speed + NEAR_MISS_BOOST, MAX_SPEED)
+	
+	_punch_visual_scale()
+	
+	# Show comic popup on HUD
+	var hud := get_tree().get_first_node_in_group(&"hud")
+	if not hud:
+		hud = get_viewport().get_node_or_null("Main/UI/HUD")
+	if hud and hud.has_method(&"show_boost_comic_popup"):
+		if near_miss_combo > 1:
+			hud.show_boost_comic_popup("COMBO x%d!" % near_miss_combo)
+		else:
+			hud.show_boost_comic_popup("CLOSE CALL!")
+	
+	GameManager.near_miss_triggered.emit(near_miss_combo, current_speed)
+	
+	# Light dynamic audio pop
+	if AudioManager:
+		AudioManager.play_sfx(FOOTSTEP_SOUNDS[0], &"PlayerSFX", randf_range(1.4, 1.6), 1.0)
+
 func start_crosswalk_wait(light: TrafficLight) -> void:
 	if is_waiting_at_signal:
 		return
 	is_waiting_at_signal = true
 	waiting_traffic_light = light
-	waiting_stop_z = global_position.z # Pause exactly where player was standing
+	waiting_stop_z = global_position.z
 	velocity.z = 0.0
-	
-	if is_sliding:
-		is_sliding = false
-		if aura_mesh:
-			aura_mesh.visible = false
 	
 	var remaining := light.get_remaining_time() if light else 3.0
 	if wait_label:
 		wait_label.visible = true
 		wait_label.modulate = Color(1.0, 0.3, 0.3)
-		wait_label.text = "🛑 대기중 (%d초)" % int(ceilf(remaining))
+		wait_label.text = "대기중 (%d초)" % int(ceilf(remaining))
 	GameManager.traffic_wait_updated.emit(true, remaining, false)
 
 func end_crosswalk_wait() -> void:
@@ -233,12 +223,15 @@ func end_crosswalk_wait() -> void:
 	current_speed = base_speed
 	GameManager.traffic_wait_updated.emit(false, 0.0, true)
 	if wait_label:
-		wait_label.text = "GO! 🟢"
+		wait_label.text = "GO!"
 		wait_label.modulate = Color(0.2, 1.0, 0.4)
 		var t := create_tween()
 		t.tween_property(wait_label, "scale", Vector3(1.3, 1.3, 1.3), 0.15)
 		t.tween_property(wait_label, "scale", Vector3.ONE, 0.15)
 		t.tween_callback(func(): if not is_waiting_at_signal: wait_label.visible = false).set_delay(0.4)
+
+var last_touch_msec: int = 0
+const TOUCH_DEBOUNCE_MS: int = 80
 
 func _unhandled_input(event: InputEvent) -> void:
 	if Engine.is_editor_hint():
@@ -246,215 +239,37 @@ func _unhandled_input(event: InputEvent) -> void:
 	if GameManager.current_state != GameManager.GameState.PLAYING:
 		return
 	
-	# 1. Action-based keyboard/button inputs
-	if event.is_action_pressed(&"tap_boost"):
-		try_tap_boost()
-		get_viewport().set_input_as_handled()
-		return
-	elif event.is_action_pressed(&"move_left"):
+	# 1. Action-based keyboard/gamepad inputs (allow_echo = false)
+	if event.is_action_pressed(&"move_left", false):
 		change_lane(-1)
 		get_viewport().set_input_as_handled()
 		return
-	elif event.is_action_pressed(&"move_right"):
+	elif event.is_action_pressed(&"move_right", false):
 		change_lane(1)
 		get_viewport().set_input_as_handled()
 		return
-	elif event.is_action_pressed(&"slide"):
-		try_slide()
+	
+	# 2. 5:5 Left/Right Screen Touch & Click Control (Debounced against duplicate mouse/touch emulation)
+	if event is InputEventScreenTouch and event.pressed:
+		_handle_screen_touch(event.position)
 		get_viewport().set_input_as_handled()
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		_handle_screen_touch(event.position)
+		get_viewport().set_input_as_handled()
+
+func _handle_screen_touch(pos: Vector2) -> void:
+	var now := Time.get_ticks_msec()
+	if now - last_touch_msec < TOUCH_DEBOUNCE_MS:
 		return
+	last_touch_msec = now
 	
-	# 2. Pointer gestures (Touch & Mouse Drag/Swipe & Tap)
-	if event is InputEventScreenTouch:
-		_process_pointer_touch(event.position, event.pressed)
-	elif event is InputEventScreenDrag:
-		_process_pointer_drag(event.position)
-	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		_process_pointer_touch(event.position, event.pressed)
-	elif event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
-		_process_pointer_drag(event.position)
-
-func _process_pointer_touch(pos: Vector2, pressed: bool) -> void:
-	if pressed:
-		touch_start_pos = pos
-		touch_start_time = Time.get_ticks_msec() / 1000.0
-		is_touch_active = true
-		has_swiped = false
-	else:
-		if not is_touch_active:
-			return
-		is_touch_active = false
-		
-		# If user didn't swipe yet, check if release motion counts as swipe or tap
-		if not has_swiped:
-			var swipe_vec: Vector2 = pos - touch_start_pos
-			if swipe_vec.length() >= SWIPE_THRESHOLD:
-				has_swiped = true
-				_execute_swipe_gesture(swipe_vec)
-			else:
-				var elapsed: float = (Time.get_ticks_msec() / 1000.0) - touch_start_time
-				if elapsed <= TAP_MAX_DURATION:
-					try_tap_boost()
-
-func _process_pointer_drag(pos: Vector2) -> void:
-	if not is_touch_active:
-		return
-	
-	var current_time := Time.get_ticks_msec() / 1000.0
-	var drag_vec: Vector2 = pos - touch_start_pos
-	
-	if drag_vec.length() >= SWIPE_THRESHOLD:
-		if not has_swiped:
-			has_swiped = true
-			last_swipe_time = current_time
-			touch_start_pos = pos
-			_execute_swipe_gesture(drag_vec)
-		elif current_time - last_swipe_time >= SWIPE_CHAIN_COOLDOWN:
-			# Allows smooth chained swipes without having to lift finger
-			last_swipe_time = current_time
-			touch_start_pos = pos
-			_execute_swipe_gesture(drag_vec)
-
-func _get_projected_axes() -> Dictionary:
-	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
-	if cam:
-		var p0 := cam.unproject_position(global_position)
-		var p_left := cam.unproject_position(global_position + Vector3(1.0, 0.0, 0.0))
-		var p_fwd := cam.unproject_position(global_position + Vector3(0.0, 0.0, 1.0))
-		var iso_l := (p_left - p0).normalized()
-		var iso_u := (p_fwd - p0).normalized()
-		return {
-			"right": -iso_l,
-			"left": iso_l,
-			"up": iso_u,
-			"down": -iso_u
-		}
-	return {
-		"right": DEFAULT_ISO_RIGHT,
-		"left": DEFAULT_ISO_LEFT,
-		"up": DEFAULT_ISO_UP,
-		"down": DEFAULT_ISO_DOWN
-	}
-
-func _execute_swipe_gesture(vec: Vector2) -> void:
-	if vec.length_squared() < 0.001:
-		return
-	
-	var dir := vec.normalized()
-	var iso_axes := _get_projected_axes()
-	
-	# Score against both screen-aligned and isometric axes:
-	# Crossy Road-style dual basis matching ensures intuitive controls whether swiping
-	# flat across the screen or diagonally along the isometric road perspective.
-	var score_right: float = maxf(dir.dot(SCREEN_RIGHT), dir.dot(iso_axes["right"]))
-	var score_left: float = maxf(dir.dot(SCREEN_LEFT), dir.dot(iso_axes["left"]))
-	var score_up: float = maxf(dir.dot(SCREEN_UP), dir.dot(iso_axes["up"]))
-	var score_down: float = maxf(dir.dot(SCREEN_DOWN), dir.dot(iso_axes["down"]))
-	
-	var max_score := maxf(maxf(score_right, score_left), maxf(score_up, score_down))
-	
-	if max_score == score_left:
+	var screen_width := get_viewport().get_visible_rect().size.x
+	if pos.x < screen_width * 0.5:
 		change_lane(-1)
-	elif max_score == score_right:
-		change_lane(1)
-	elif max_score == score_up:
-		try_slide()
-	elif max_score == score_down:
-		# Downward swipe provides gentle deceleration if running above base speed
-		if current_speed > base_speed:
-			current_speed = maxf(current_speed - 2.0, base_speed)
-
-func try_tap_boost() -> void:
-	if is_exhausted or is_waiting_at_signal:
-		return
-	
-	if current_stamina < TAP_STAMINA_COST:
-		_trigger_exhaustion()
-		return
-	
-	current_stamina -= TAP_STAMINA_COST
-	current_speed = minf(current_speed + TAP_BOOST, MAX_SPEED)
-	time_since_last_tap = 0.0
-	
-	_punch_visual_scale()
-	
-	if current_stamina <= 0.0:
-		current_stamina = 0.0
-		_trigger_exhaustion()
-	
-	_emit_stamina()
-
-func _trigger_exhaustion() -> void:
-	is_exhausted = true
-	exhausted_timer = EXHAUSTED_DURATION
-	current_speed = base_speed
-	_emit_stamina()
-
-func restore_full_stamina() -> void:
-	current_stamina = max_stamina
-	is_exhausted = false
-	exhausted_timer = 0.0
-	_emit_stamina()
-
-func _handle_stamina(delta: float) -> void:
-	if is_exhausted:
-		exhausted_timer -= delta
-		if exhausted_timer <= 0.0:
-			is_exhausted = false
-			current_stamina = 1.0
-			_emit_stamina()
 	else:
-		if time_since_last_tap > SPEED_DECAY_DELAY and current_stamina < max_stamina:
-			current_stamina = minf(current_stamina + STAMINA_RECOVERY_RATE * delta, max_stamina)
-			_emit_stamina()
-
-func _handle_speed_decay(delta: float) -> void:
-	if is_sliding:
-		return
-		
-	time_since_last_tap += delta
-	if time_since_last_tap >= SPEED_DECAY_DELAY and current_speed > base_speed:
-		current_speed = move_toward(current_speed, base_speed, SPEED_DECAY_RATE * delta)
-
-func try_slide() -> void:
-	if not SaveManager.is_slide_unlocked() or is_waiting_at_signal:
-		return
-	if is_sliding or slide_cooldown_timer > 0.0:
-		return
-	if current_stamina < SLIDE_STAMINA_COST:
-		return
-	
-	current_stamina -= SLIDE_STAMINA_COST
-	_emit_stamina()
-	
-	is_sliding = true
-	slide_timer = SLIDE_DURATION
-	slide_cooldown_timer = SLIDE_COOLDOWN
-	
-	if aura_mesh:
-		aura_mesh.visible = true
-	
-	GameManager.slide_cooldown_updated.emit(SLIDE_COOLDOWN, SLIDE_COOLDOWN)
-
-func _handle_slide_timers(delta: float) -> void:
-	if is_sliding:
-		slide_timer -= delta
-		if slide_timer <= 0.0:
-			is_sliding = false
-			if aura_mesh:
-				aura_mesh.visible = false
-	
-	if slide_cooldown_timer > 0.0:
-		slide_cooldown_timer = maxf(slide_cooldown_timer - delta, 0.0)
-		GameManager.slide_cooldown_updated.emit(slide_cooldown_timer, SLIDE_COOLDOWN)
+		change_lane(1)
 
 func change_lane(direction: int) -> void:
-	# If player is in front of an enterable shop door and swipes left on the door lane
-	if direction < 0 and current_door_target != null and is_instance_valid(current_door_target):
-		if current_lane == MIN_LANE:
-			try_enter_shop()
-			return
-	
 	var next_lane := clampi(current_lane + direction, MIN_LANE, MAX_LANE)
 	if next_lane == current_lane:
 		return
@@ -476,16 +291,15 @@ func change_lane(direction: int) -> void:
 	
 	lane_changed.emit(current_lane)
 
-func try_enter_shop() -> void:
-	if current_door_target and is_instance_valid(current_door_target):
-		var target_shop = current_door_target
-		current_door_target = null
-		if target_shop.has_method(&"enter_shop"):
-			target_shop.enter_shop(self)
 
 func hit_by_obstacle() -> void:
-	if is_invincible or is_sliding:
+	if is_invincible:
 		return
+	
+	# Reset speed to base_speed immediately upon collision!
+	current_speed = base_speed
+	boost_hold_timer = 0.0
+	near_miss_combo = 0
 	
 	is_invincible = true
 	invincibility_timer = INVINCIBILITY_DURATION
@@ -512,7 +326,7 @@ func _handle_invincibility(delta: float) -> void:
 			visual_root.visible = true
 
 func _update_visual_hop(delta: float) -> void:
-	if not visual_root or is_sliding or is_waiting_at_signal:
+	if not visual_root or is_waiting_at_signal:
 		if is_waiting_at_signal and visual_root:
 			visual_root.position.y = 0.0
 		return
@@ -524,14 +338,13 @@ func _update_visual_hop(delta: float) -> void:
 	visual_root.position.y = hop_height
 	visual_root.rotation.x = deg_to_rad(5.0)
 	
-	# Play footstep synchronized with ground landing (every PI radians)
 	if int(hop_time / PI) > int(prev_hop / PI):
 		_play_footstep()
 
 func _play_footstep() -> void:
 	if Engine.is_editor_hint():
 		return
-	if is_sliding or is_waiting_at_signal:
+	if is_waiting_at_signal:
 		return
 	if GameManager.current_state != GameManager.GameState.PLAYING:
 		return
@@ -547,16 +360,13 @@ func _play_footstep() -> void:
 		add_child(audio)
 		footstep_audio = audio
 	
-	# Randomly play footstep 1, 2, or 3 avoiding consecutive repeats
 	var idx := randi() % FOOTSTEP_SOUNDS.size()
 	if idx == _last_footstep_idx and FOOTSTEP_SOUNDS.size() > 1:
 		idx = (idx + 1 + randi() % (FOOTSTEP_SOUNDS.size() - 1)) % FOOTSTEP_SOUNDS.size()
 	_last_footstep_idx = idx
 	
 	audio.stream = FOOTSTEP_SOUNDS[idx]
-	# Subtle natural pitch jitter (0.94 ~ 1.06)
 	audio.pitch_scale = randf_range(0.94, 1.06)
-	# Volume dynamically scales with running speed
 	var speed_ratio := clampf((current_speed - base_speed) / (MAX_SPEED - base_speed), 0.0, 1.0)
 	audio.volume_db = lerpf(-4.0, 0.5, speed_ratio)
 	audio.play()
@@ -568,13 +378,14 @@ func _punch_visual_scale() -> void:
 	var t := create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	t.tween_property(visual_root, "scale", Vector3.ONE * character_scale, 0.15)
 
-func _emit_stamina() -> void:
-	GameManager.stamina_updated.emit(current_stamina, max_stamina, is_exhausted)
-
 func reset_state() -> void:
 	is_dead = false
 	active_ragdoll_body = null
+	base_speed = SaveManager.get_base_speed()
 	current_speed = base_speed
+	boost_hold_timer = 0.0
+	near_miss_combo = 0
+	combo_reset_timer = 0.0
 	set_physics_process(true)
 	set_process_input(true)
 	if visual_root:
@@ -590,7 +401,7 @@ func reset_state() -> void:
 	if cam and cam.projection == Camera3D.PROJECTION_ORTHOGONAL:
 		cam.size = 15.0
 
-func _on_game_lost(reason: String, _dist: float, _coins: int) -> void:
+func _on_game_lost(reason: String, _dist: float = 0.0, _coins: int = 0, _score: int = 0, _is_new: bool = false) -> void:
 	if not is_inside_tree() or is_dead:
 		return
 	die(reason, Vector3(0.0, 0.15, 1.0))
@@ -609,17 +420,11 @@ func die(reason: String = "사망!", hit_direction: Vector3 = Vector3.ZERO) -> v
 	
 	play_oof_sound()
 	
-	# Heavy impact sound
 	if AudioManager:
 		AudioManager.play_sfx(preload("res://assets/audio/sfx/thud.mp3"), &"PlayerSFX", 0.65, 3.0)
 	
-	# 1. Slow Motion
 	Engine.time_scale = 0.18
-	
-	# 2. Camera zoom
 	_zoom_camera_on_death()
-	
-	# 3. Spawn unified body ragdoll & flying cap
 	_spawn_ragdoll_blocks(hit_direction)
 	
 	if visual_root:
@@ -642,145 +447,85 @@ func _spawn_ragdoll_blocks(hit_direction: Vector3) -> void:
 	if not p_parent or not p_parent.is_inside_tree():
 		return
 	
-	# Invisible floor slab under player to ensure ragdoll collides and slides on road/sidewalk
 	var floor_body := StaticBody3D.new()
 	var floor_col := CollisionShape3D.new()
 	var floor_box := BoxShape3D.new()
 	floor_box.size = Vector3(60.0, 1.0, 60.0)
 	floor_col.shape = floor_box
+	floor_body.position = Vector3(0.0, -0.5, global_position.z)
+	floor_body.collision_layer = 1
+	floor_body.collision_mask = 0
 	floor_body.add_child(floor_col)
 	p_parent.add_child(floor_body)
-	floor_body.global_position = Vector3(0.0, -0.5, global_position.z)
 	_ragdoll_nodes.append(floor_body)
 	
-	var base_dir := hit_direction.normalized() if hit_direction.length_squared() > 0.01 else Vector3(0.0, 0.15, 1.0).normalized()
+	var ragdoll := RigidBody3D.new()
+	ragdoll.position = global_position + Vector3(0.0, 0.4 * character_scale, 0.0)
+	ragdoll.mass = 12.0
+	ragdoll.collision_layer = 0
+	ragdoll.collision_mask = 1
 	
-	# Realistic asphalt physics material (good friction for sliding, moderate bounce)
-	var body_phys_mat := PhysicsMaterial.new()
-	body_phys_mat.friction = 0.65
-	body_phys_mat.bounce = 0.22
+	var r_mat := PhysicsMaterial.new()
+	r_mat.friction = 0.35
+	r_mat.bounce = 0.25
+	ragdoll.physics_material_override = r_mat
+	ragdoll.continuous_cd = true
 	
-	# 1. Main Unified Ragdoll Body (Body + Head + Eyes)
-	# Using CapsuleShape3D allows the body to roll, tumble, and slide smoothly on asphalt without snagging on sharp corners
-	var rb_player := RigidBody3D.new()
-	rb_player.name = "Ragdoll_Player"
-	rb_player.physics_material_override = body_phys_mat
-	rb_player.collision_layer = 0
-	rb_player.collision_mask = 1
-	rb_player.mass = 12.0
-	rb_player.linear_damp = 0.8
-	rb_player.angular_damp = 1.4
+	var r_shape := CollisionShape3D.new()
+	var r_box := BoxShape3D.new()
+	r_box.size = Vector3(0.7, 0.9, 0.7) * character_scale
+	r_shape.shape = r_box
+	ragdoll.add_child(r_shape)
 	
-	var col := CollisionShape3D.new()
-	var capsule := CapsuleShape3D.new()
-	capsule.radius = 0.32 * character_scale
-	capsule.height = 1.25 * character_scale
-	col.shape = capsule
-	col.position = Vector3.ZERO
-	rb_player.add_child(col)
+	var r_vis := Node3D.new()
+	r_vis.scale = Vector3.ONE * character_scale
 	
-	# Duplicate visual meshes into the ragdoll body (excluding cap and slide aura)
-	if visual_root:
-		var dup_visuals := visual_root.duplicate() as Node3D
-		dup_visuals.visible = true
-		var cap_in_dup = dup_visuals.get_node_or_null("Cap")
-		if cap_in_dup:
-			cap_in_dup.queue_free()
-		var bill_in_dup = dup_visuals.get_node_or_null("CapBill")
-		if bill_in_dup:
-			bill_in_dup.queue_free()
-		var aura_in_dup = dup_visuals.get_node_or_null("SlideAura")
-		if aura_in_dup:
-			aura_in_dup.queue_free()
+	if body_mesh:
+		var dup_body := body_mesh.duplicate() as MeshInstance3D
+		r_vis.add_child(dup_body)
+	if head_mesh:
+		var dup_head := head_mesh.duplicate() as MeshInstance3D
+		r_vis.add_child(dup_head)
+	if eye_l_mesh:
+		r_vis.add_child(eye_l_mesh.duplicate())
+	if eye_r_mesh:
+		r_vis.add_child(eye_r_mesh.duplicate())
+	
+	ragdoll.add_child(r_vis)
+	p_parent.add_child(ragdoll)
+	_ragdoll_nodes.append(ragdoll)
+	active_ragdoll_body = ragdoll
+	
+	var hit_impulse := hit_direction.normalized() * randf_range(16.0, 24.0)
+	hit_impulse.y = randf_range(10.0, 16.0)
+	hit_impulse.x += randf_range(-6.0, 6.0)
+	ragdoll.apply_central_impulse(hit_impulse)
+	ragdoll.apply_torque_impulse(Vector3(randf_range(-14.0, 14.0), randf_range(-10.0, 10.0), randf_range(-14.0, 14.0)))
+	
+	if cap_mesh:
+		var cap_rigid := RigidBody3D.new()
+		cap_rigid.position = global_position + Vector3(0.0, 1.25 * character_scale, 0.0)
+		cap_rigid.mass = 0.8
+		cap_rigid.collision_layer = 0
+		cap_rigid.collision_mask = 1
 		
-		# Center visuals around the capsule's center of mass (mid-torso)
-		dup_visuals.position = Vector3(0.0, -0.6 * character_scale, 0.0)
-		rb_player.add_child(dup_visuals)
-	
-	# Add to tree first, then set global transform to avoid Godot warnings
-	p_parent.add_child(rb_player)
-	var com_offset := Vector3(0.0, 0.6 * character_scale, 0.0)
-	rb_player.global_position = global_position + com_offset
-	rb_player.global_rotation = visual_root.global_rotation if visual_root else rotation
-	active_ragdoll_body = rb_player
-	_ragdoll_nodes.append(rb_player)
-	
-	# Natural impulse and rotational tumble
-	var is_car_hit := hit_direction.length_squared() > 0.01 and absf(hit_direction.x) > 0.25
-	var impulse_dir: Vector3
-	var impulse_speed: float
-	var torque: Vector3
-	
-	if is_car_hit:
-		# Car hit: Thrown sideways with vehicle velocity, lifted off ground, tumbling
-		impulse_dir = Vector3(
-			signf(hit_direction.x) * randf_range(1.2, 1.4),
-			randf_range(0.35, 0.52),
-			hit_direction.z + randf_range(-0.15, 0.15)
-		).normalized()
-		impulse_speed = randf_range(6.5, 8.5)
+		var cap_cshape := CollisionShape3D.new()
+		var cap_cbox := BoxShape3D.new()
+		cap_cbox.size = Vector3(0.5, 0.25, 0.5) * character_scale
+		cap_cshape.shape = cap_cbox
+		cap_rigid.add_child(cap_cshape)
 		
-		# Tumble around axis perpendicular to movement (natural cartwheel / roll)
-		var rot_axis := Vector3.UP.cross(impulse_dir).normalized()
-		torque = (rot_axis * randf_range(12.0, 18.0) + Vector3(randf_range(-3.0, 3.0), randf_range(-3.0, 3.0), randf_range(-3.0, 3.0))) * (rb_player.mass * 0.12)
-	else:
-		# Collapse / timeout / fatigue: stumbling forward and collapsing/tumbling forward to the ground
-		impulse_dir = Vector3(
-			randf_range(-0.1, 0.1),
-			randf_range(0.08, 0.18),
-			randf_range(0.9, 1.1)
-		).normalized()
-		impulse_speed = randf_range(3.0, 4.5)
-		
-		# Pitch forward (+X torque): head falls forward (+Z) and faceplants onto asphalt
-		torque = Vector3(
-			randf_range(6.5, 9.5),
-			randf_range(-1.0, 1.0),
-			randf_range(-1.5, 1.5)
-		) * (rb_player.mass * 0.14)
-	
-	rb_player.apply_central_impulse(impulse_dir * (impulse_speed * rb_player.mass))
-	rb_player.apply_torque_impulse(torque)
-	
-	# 2. Cap Piece (Flies off independently like classic slapstick / GTA physics)
-	if cap_mesh and cap_mesh.is_inside_tree():
-		var cap_phys_mat := PhysicsMaterial.new()
-		cap_phys_mat.friction = 0.55
-		cap_phys_mat.bounce = 0.35
-		
-		var rb_cap := RigidBody3D.new()
-		rb_cap.name = "Ragdoll_Cap"
-		rb_cap.physics_material_override = cap_phys_mat
-		rb_cap.collision_layer = 0
-		rb_cap.collision_mask = 1
-		rb_cap.mass = 0.6
-		rb_cap.linear_damp = 0.5
-		rb_cap.angular_damp = 0.8
-		
-		var cap_col := CollisionShape3D.new()
-		var cap_box := BoxShape3D.new()
-		var cap_bmesh := cap_mesh.mesh as BoxMesh
-		cap_box.size = (cap_bmesh.size if cap_bmesh else Vector3(0.44, 0.12, 0.44)) * character_scale
-		cap_col.shape = cap_box
-		rb_cap.add_child(cap_col)
-		
-		var dup_cap := cap_mesh.duplicate() as MeshInstance3D
-		dup_cap.transform = Transform3D.IDENTITY
-		dup_cap.scale = Vector3.ONE * character_scale
-		rb_cap.add_child(dup_cap)
-		
+		var cap_vis := Node3D.new()
+		cap_vis.scale = Vector3.ONE * character_scale
+		cap_vis.position = Vector3(0.0, -0.94, 0.0)
+		cap_vis.add_child(cap_mesh.duplicate())
 		if cap_bill_mesh:
-			var dup_bill := cap_bill_mesh.duplicate() as MeshInstance3D
-			dup_bill.transform = cap_mesh.transform.affine_inverse() * cap_bill_mesh.transform
-			dup_bill.scale = Vector3.ONE * character_scale
-			rb_cap.add_child(dup_bill)
+			cap_vis.add_child(cap_bill_mesh.duplicate())
 		
-		p_parent.add_child(rb_cap)
-		rb_cap.global_transform = cap_mesh.global_transform
+		cap_rigid.add_child(cap_vis)
+		p_parent.add_child(cap_rigid)
+		_ragdoll_nodes.append(cap_rigid)
 		
-		# Cap pops off forward/upward as player tumbles forward
-		var cap_dir := (impulse_dir + Vector3(randf_range(-0.1, 0.1), 0.45, randf_range(0.15, 0.35))).normalized()
-		var cap_impulse = cap_dir * randf_range(3.0, 4.5) * rb_cap.mass
-		rb_cap.apply_central_impulse(cap_impulse)
-		rb_cap.apply_torque_impulse(Vector3(randf_range(2.0, 4.0), randf_range(-2.0, 2.0), randf_range(-2.0, 2.0)))
-		_ragdoll_nodes.append(rb_cap)
+		var cap_impulse := Vector3(randf_range(-5.0, 5.0), randf_range(16.0, 22.0), randf_range(-4.0, 8.0))
+		cap_rigid.apply_central_impulse(cap_impulse)
+		cap_rigid.apply_torque_impulse(Vector3(randf_range(-25.0, 25.0), randf_range(-15.0, 15.0), randf_range(-25.0, 25.0)))

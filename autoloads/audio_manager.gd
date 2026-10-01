@@ -118,7 +118,7 @@ func _on_interior_exited() -> void:
 	ambience_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	ambience_tween.tween_property(ambience_player, "volume_db", 0.0, 0.8)
 
-func _on_game_ended(_arg1, _arg2 = null, _arg3 = null) -> void:
+func _on_game_ended(_arg1 = null, _arg2 = null, _arg3 = null, _arg4 = null, _arg5 = null) -> void:
 	# Gently fade ambience slightly on game over / victory
 	if not ambience_player:
 		return

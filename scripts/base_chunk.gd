@@ -173,6 +173,24 @@ func _build_tile_lines_multimesh() -> void:
 	mmi.multimesh = mm
 	mmi.material_override = _mat_tile_line
 	add_child(mmi)
+	
+	# Longitudinal lane divider lines (X = -1.5, -0.5, 0.5, 1.5) to visually show all 5 lanes
+	var mm_vert := MultiMesh.new()
+	mm_vert.transform_format = MultiMesh.TRANSFORM_3D
+	var vline_mesh := BoxMesh.new()
+	vline_mesh.size = Vector3(0.06, 0.41, CHUNK_LENGTH)
+	mm_vert.mesh = vline_mesh
+	mm_vert.instance_count = 4
+	
+	var divider_x_positions: Array[float] = [-1.5, -0.5, 0.5, 1.5]
+	for j in range(4):
+		var vt := Transform3D(Basis.IDENTITY, Vector3(divider_x_positions[j], -0.19, CHUNK_LENGTH / 2.0))
+		mm_vert.set_instance_transform(j, vt)
+	
+	var vmmi := MultiMeshInstance3D.new()
+	vmmi.multimesh = mm_vert
+	vmmi.material_override = _mat_tile_line
+	add_child(vmmi)
 
 ## MultiMesh for yellow dashed road markers: 1 draw call
 func _build_road_lines_multimesh() -> void:

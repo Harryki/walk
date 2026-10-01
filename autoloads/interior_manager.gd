@@ -44,10 +44,6 @@ func handle_player_entered_shop(shop: Node3D, player: CharacterBody3D) -> void:
 	
 	if is_instance_valid(player):
 		player.velocity = Vector3.ZERO
-		if player.is_sliding:
-			player.is_sliding = false
-			if player.aura_mesh:
-				player.aura_mesh.visible = false
 		if player.visual_root:
 			player.visual_root.position.y = 0.0
 			player.visual_root.rotation.y = PI / 2.0 # Face towards shop entrance

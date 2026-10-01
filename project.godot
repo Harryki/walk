@@ -30,6 +30,10 @@ window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=1
 
+[gui]
+
+theme/custom_font="res://assets/fonts/Galmuri11.ttf"
+
 [input]
 
 move_left={

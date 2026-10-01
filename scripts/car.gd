@@ -138,8 +138,8 @@ func _on_body_entered(body: Node3D) -> void:
 	if not body.is_in_group(&"player") and not (body is CharacterBody3D and body.name == "Player"):
 		return
 	
-	# Check if player is sliding (invincible)
-	var is_invincible: bool = body.get(&"is_invincible") == true or body.get(&"is_sliding") == true
+	# Check if player is invincible
+	var is_invincible: bool = body.get(&"is_invincible") == true
 	if is_invincible:
 		return
 	
@@ -165,4 +165,7 @@ func _on_area_entered(area: Area3D) -> void:
 	if is_stopped or current_speed < 2.5:
 		return
 	if area is Pedestrian and not area.is_dead:
-		area.knockback_and_destroy()
+		if area.has_method(&"knockback_and_destroy"):
+			area.knockback_and_destroy()
+		elif area.has_method(&"destroy_pedestrian"):
+			area.destroy_pedestrian()

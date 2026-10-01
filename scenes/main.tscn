@@ -14,7 +14,6 @@
 [ext_resource type="PackedScene" uid="uid://cshoppopup01" path="res://scenes/ui/shop_popup.tscn" id="12_shop_popup"]
 [ext_resource type="PackedScene" uid="uid://btransmask01" path="res://scenes/ui/transition_mask.tscn" id="13_transition"]
 [ext_resource type="PackedScene" uid="uid://b2hti1ntffdme" path="res://scenes/buildings/shop_interior.tscn" id="14_interior"]
-[ext_resource type="PackedScene" path="res://scenes/obstacles/energy_drink.tscn" id="15_drink"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_main"]
 sky_top_color = Color(0.38, 0.68, 0.95, 1)
@@ -59,7 +58,6 @@ size = 15.0
 script = ExtResource("4_spawner")
 pedestrian_scene = ExtResource("5_ped")
 coin_scene = ExtResource("6_coin")
-energy_drink_scene = ExtResource("15_drink")
 car_scene = ExtResource("7_car")
 npc_spawn_table = ExtResource("10_npc_table")
 item_spawn_table = ExtResource("11_item_table")
